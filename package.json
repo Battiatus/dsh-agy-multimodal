@@ -1,0 +1,41 @@
+{
+  "name": "dsh-agy-multimodal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Google Antigravity (agy) OAuth for DeepSeek Harness: Gemini models plus web search, image, audio and video tools",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@cortexkit/antigravity-auth-core": "3.0.30"
+  },
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib/*.js",
+    "cordis.patch.yml",
+    "README.md"
+  ]
+}
