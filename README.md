@@ -13,24 +13,28 @@ Plugin DeepSeek Harness : les modèles Gemini de votre abonnement Google Antigra
 
 Canal non officiel : Google a déjà suspendu des comptes branchés ainsi dans des outils tiers.
 
-## Installation (application DeepSeek Harness seule)
+## Installation
 
-1. Quittez complètement DeepSeek Harness (⌘Q).
-2. Dans un terminal :
+Quittez DeepSeek Harness (⌘Q), puis une seule commande :
 
-   ```bash
-   cd /Users/rugaadmin/Documents/repos/private/dsh-agy-multimodal && npm install
-   ```
+```bash
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add github:Battiatus/dsh-agy-multimodal
+```
 
-   ```bash
-   "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add link:/Users/rugaadmin/Documents/repos/private/dsh-agy-multimodal
-   ```
+DSH clone le dépôt, installe les dépendances et active le plugin dans le profil `desktop`.
+Le dépôt est privé : la machine doit avoir accès à GitHub avec ce compte (`gh auth login`, ou une clé SSH).
 
-3. Relancez DeepSeek Harness, ouvrez Réglages › Antigravity (Gemini) › « Se connecter avec Google » (ou tapez `/agy login`), puis validez la connexion dans le navigateur.
-4. Choisissez un modèle « Gemini (Antigravity) ».
+Relancez DeepSeek Harness, ouvrez Réglages › Antigravity (Gemini) › « Se connecter avec Google » (ou tapez `/agy login`), puis choisissez un modèle « Gemini (Antigravity) ».
 
-`link:` pointe vers ce dossier : une modification du code (serveur ou écran) est prise en compte au prochain lancement de DSH.
-Désinstaller : même commande avec `remove dsh-agy-multimodal` à la place de `add link:…`.
+Mettre à jour (DSH fermé) :
+
+```bash
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop update dsh-agy-multimodal
+```
+
+Désinstaller : même commande avec `remove dsh-agy-multimodal`.
+
+Développement : `npm install` dans un clone local, puis `add link:<chemin du clone>` à la place de `add github:…` ; une modification du code est prise en compte au prochain lancement de DSH.
 
 La connexion écoute brièvement sur `127.0.0.1:51121` (port imposé par Google pour ce client OAuth).
 Si un autre outil Antigravity le tient au même moment, `/agy login` le signale ; réessayez après.
