@@ -55,7 +55,7 @@ test('plusieurs comptes : liste sans jetons, bascule, retrait de l\'actif', asyn
 
 test('geminiModels garde les modèles Gemini texte du compte et regroupe leurs niveaux', () => {
   const g = (displayName, model, extra = {}) => ({ displayName, model, apiProvider: 'API_PROVIDER_GOOGLE_GEMINI', maxTokens: 1048576, maxOutputTokens: 65536, ...extra });
-  const list = geminiModels({
+  const models = {
     'gemini-3.8-flash-low': g('Gemini 3.8 Flash (Low)', 'MODEL_PLACEHOLDER_M320'),
     'gemini-3.8-flash-high': g('Gemini 3.8 Flash (High)', 'MODEL_PLACEHOLDER_M318'),
     'gemini-3.8-flash-medium': g('Gemini 3.8 Flash (Medium)', 'MODEL_PLACEHOLDER_M319'),
@@ -65,12 +65,16 @@ test('geminiModels garde les modèles Gemini texte du compte et regroupe leurs n
     'gemini-3.1-flash-image': g('Gemini 3.1 Flash Image', 'MODEL_PLACEHOLDER_M21'),
     'claude-sonnet-4-6': g('Claude Sonnet 4.6', 'MODEL_PLACEHOLDER_M35', { apiProvider: 'API_PROVIDER_ANTHROPIC_VERTEX' }),
     chat_23310: { model: 'MODEL_CHAT_23310', isInternal: true },
-  });
-  assert.deepEqual(list.map((m) => [m.id, m.name, m.efforts.join('/')]), [
-    ['gemini-3.8-flash', 'Gemini 3.8 Flash', 'low/medium/high'],
-    ['gemini-3.5-flash-lite', 'Gemini 3.5 Flash Lite', ''],
-  ]);
+  };
+  // seuls les modèles du sélecteur d'Antigravity (agentModelSorts) : 3.5 Flash Lite ne sert qu'en coulisse
+  const agentModelSorts = [{ displayName: 'Recommended', groups: [{ modelIds: [
+    'gemini-3.8-flash-high', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low', 'claude-sonnet-4-6', 'gemini-4-argon-disabled'] }] }];
+  const list = geminiModels({ models, agentModelSorts });
+  assert.deepEqual(list.map((m) => [m.id, m.name, m.efforts.join('/')]), [['gemini-3.8-flash', 'Gemini 3.8 Flash', 'low/medium/high']]);
   assert.equal(wireOf(list[0], 'high'), 'gemini-3.8-flash-high');
   assert.equal(wireOf(list[0], undefined), 'gemini-3.8-flash-medium');
-  assert.equal(wireOf(list[1], 'high'), 'gemini-3.5-flash-lite');
+  // sans agentModelSorts, repli sur tous les modèles Gemini texte, un id par nom affiché
+  const all = geminiModels({ models });
+  assert.deepEqual(all.map((m) => m.id), ['gemini-3.8-flash', 'gemini-3.5-flash-lite']);
+  assert.equal(wireOf(all[1], 'high'), 'gemini-3.5-flash-lite');
 });
