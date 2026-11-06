@@ -36,6 +36,12 @@ dsh plugin --profile desktop add github:Battiatus/dsh-gemini-antigravity-auth
 
 Relancez DeepSeek Harness. C'est tout.
 
+Vous installez depuis l'écran des plugins de l'application ? Collez l'adresse complète :
+
+```text
+git+https://github.com/Battiatus/dsh-gemini-antigravity-auth.git
+```
+
 > **`dsh: command not found` ?** La commande est fournie avec l'application :
 > `"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"`.
 > Changez `--profile` (par exemple `web` ou `tui`) pour l'installer dans un autre profil DSH.
