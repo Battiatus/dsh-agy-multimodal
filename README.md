@@ -1,49 +1,113 @@
-# dsh-agy-multimodal
+<h1 align="center">dsh-agy-multimodal</h1>
 
-Plugin DeepSeek Harness : les modèles Gemini de votre abonnement Google Antigravity, connectés par OAuth Google.
+<p align="center"><strong>Gemini for DeepSeek Harness, with your Google Antigravity subscription.</strong><br>
+Sign in with Google, pick a Gemini model, and let your agent search the web and understand images, audio, video and PDFs.</p>
 
-- **Modèles** : Gemini 4 Argon, Gemini 3.8 Flash, Gemini 3.5 Flash (fournisseur « Gemini (Antigravity) », réflexion low/medium/high).
-- **Fichiers joints** : images, plus audio, vidéo et PDF joints au message, envoyés tels quels à Gemini.
-- **Outils de l'agent** : `agy_web_search` (Google Search, avec sources) et `agy_media` (analyse d'un fichier image/audio/vidéo/PDF du dossier de travail, ~36 Mo max).
-- **Écran Réglages › Antigravity (Gemini)** :
-  - plusieurs comptes Google : ajouter, choisir l'actif, retirer ;
-  - quotas restants par compte (groupe Gemini et chaque modèle, avec l'heure de remise à zéro) ;
-  - accès : interrupteurs pour les modèles Gemini, la recherche web et l'analyse de médias, et choix des modèles visibles.
-- **Commande** : `/agy login | status | use <email> | logout [email]`.
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#usage">Usage</a> ·
+  <a href="#faq">FAQ</a> ·
+  <a href="README.fr.md">Français</a>
+</p>
 
-Canal non officiel : Google a déjà suspendu des comptes branchés ainsi dans des outils tiers.
+<p align="center">
+  <img alt="DeepSeek Harness plugin" src="https://img.shields.io/badge/DeepSeek%20Harness-plugin-4D6BFE">
+  <img alt="Gemini" src="https://img.shields.io/badge/Gemini-Antigravity-1A73E8">
+  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-green">
+</p>
 
-## Installation
+---
 
-Quittez DeepSeek Harness (⌘Q), puis une seule commande :
+**dsh-agy-multimodal** is a [DeepSeek Harness](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) (DSH) plugin that adds Google **Gemini** models through **Google Antigravity** OAuth. No API key, no extra CLI: you log in with your Google account and the Gemini models appear in the DSH model picker, next to your other providers.
 
-```bash
-"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop add github:Battiatus/dsh-agy-multimodal
-```
+## Features
 
-DSH clone le dépôt, installe les dépendances et active le plugin dans le profil `desktop`.
-Le dépôt est privé : la machine doit avoir accès à GitHub avec ce compte (`gh auth login`, ou une clé SSH).
+- 🔐 **Google sign-in (OAuth)**: one click from the settings screen or `/agy login`. No API key to copy.
+- 🤖 **Gemini models in the model picker**: Gemini 4 Argon, Gemini 3.8 Flash and Gemini 3.5 Flash, with low / medium / high reasoning.
+- 👥 **Several Google accounts**: add, switch and remove accounts, and see the remaining quota of each one, with its reset time.
+- 🖼️ **Multimodal attachments**: images, audio, video and PDF attached to a message go straight to Gemini.
+- 🔎 **`agy_web_search` tool**: Google Search grounding with sources, usable by any agent.
+- 🎬 **`agy_media` tool**: your agent can analyse an image, audio, video or PDF file from the working folder (up to ~36 MB).
+- 🎛️ **Access switches**: turn the Gemini models, web search or media analysis on and off, and hide the models you don't use.
+- 🧩 **Works with DSH tools**: full tool calling, with tool schemas adapted to what Gemini accepts.
 
-Relancez DeepSeek Harness, ouvrez Réglages › Antigravity (Gemini) › « Se connecter avec Google » (ou tapez `/agy login`), puis choisissez un modèle « Gemini (Antigravity) ».
+## Install
 
-Mettre à jour (DSH fermé) :
-
-```bash
-"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" plugin --profile desktop update dsh-agy-multimodal
-```
-
-Désinstaller : même commande avec `remove dsh-agy-multimodal`.
-
-Développement : `npm install` dans un clone local, puis `add link:<chemin du clone>` à la place de `add github:…` ; une modification du code est prise en compte au prochain lancement de DSH.
-
-La connexion écoute brièvement sur `127.0.0.1:51121` (port imposé par Google pour ce client OAuth).
-Si un autre outil Antigravity le tient au même moment, `/agy login` le signale ; réessayez après.
-Les jetons sont dans `~/.dsh/agy-multimodal/accounts.json` (droits 0600), jamais affichés ; les réglages d'accès dans `settings.json` à côté.
-
-## Tests
+Close DeepSeek Harness, then run:
 
 ```bash
-npm test
+dsh plugin --profile desktop add github:Battiatus/dsh-agy-multimodal
 ```
 
-Dépendance : [`@cortexkit/antigravity-auth-core`](https://www.npmjs.com/package/@cortexkit/antigravity-auth-core) 3.0.30, licence MIT.
+Restart DeepSeek Harness. That's it.
+
+> **`dsh: command not found`?** The CLI ships inside the app:
+> `"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"`.
+> Use a different `--profile` (for example `web` or `tui`) to install it in another DSH profile.
+
+**Update**
+
+```bash
+dsh plugin --profile desktop update dsh-agy-multimodal
+```
+
+**Uninstall**
+
+```bash
+dsh plugin --profile desktop remove dsh-agy-multimodal
+```
+
+## Usage
+
+1. Open **Settings › Antigravity (Gemini)** and click **Se connecter avec Google** (or type `/agy login`). The settings screen is in French for now.
+2. Approve the sign-in in your browser.
+3. Pick a **Gemini (Antigravity)** model in the model picker and start chatting.
+
+### `/agy` command
+
+| Command | What it does |
+| --- | --- |
+| `/agy login` | Add a Google account |
+| `/agy status` | List accounts, the active one is marked ● |
+| `/agy use <email>` | Switch the active account |
+| `/agy logout [email]` | Remove an account (the active one by default) |
+
+### Agent tools
+
+| Tool | What it does |
+| --- | --- |
+| `agy_web_search` | Searches Google and answers with its sources |
+| `agy_media` | Describes, transcribes or analyses an image, audio, video or PDF file from the working folder |
+
+## FAQ
+
+**Is it official?**
+No. It uses the same sign-in as Google Antigravity. Google has already suspended accounts used this way in third-party tools: use it at your own risk.
+
+**Where are my tokens stored?**
+On your machine only, in `~/.dsh/agy-multimodal/accounts.json` (permissions `0600`). They are never shown in the UI. Access settings live in `settings.json` next to it.
+
+**Sign-in fails with a port error.**
+Sign-in listens briefly on `127.0.0.1:51121`, the port Google requires for this client. If another Antigravity tool is using it at the same time, `/agy login` tells you so. Close that tool and try again.
+
+**I get a 400 error about tool schemas.**
+Update the plugin. Recent versions convert multi-type and tuple schemas into a form Gemini accepts.
+
+## Development
+
+```bash
+git clone https://github.com/Battiatus/dsh-agy-multimodal.git
+cd dsh-agy-multimodal && npm install && npm test
+dsh plugin --profile desktop add link:$PWD
+```
+
+With `link:`, DSH loads the plugin from your clone, so code changes apply at the next DSH launch.
+
+Built on [`@cortexkit/antigravity-auth-core`](https://www.npmjs.com/package/@cortexkit/antigravity-auth-core) (MIT).
+
+## License
+
+[MIT](LICENSE)
+
+<sub>Keywords: DeepSeek Harness plugin, DSH plugin, Gemini provider, Google Antigravity, Google OAuth, Gemini 4, Gemini Flash, multimodal LLM, image understanding, audio transcription, video analysis, PDF analysis, Google Search grounding, AI agent tools.</sub>

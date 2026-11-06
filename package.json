@@ -3,8 +3,41 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Google Antigravity (agy) OAuth for DeepSeek Harness: Gemini models plus web search, image, audio and video tools",
+  "description": "Gemini models from your Google Antigravity subscription inside DeepSeek Harness: Google OAuth, multi-account quotas, Google Search grounding, and image, audio, video and PDF understanding.",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "dsh-plugin-desktop",
+    "gemini",
+    "google-gemini",
+    "antigravity",
+    "google-antigravity",
+    "google-oauth",
+    "oauth",
+    "llm-provider",
+    "multimodal",
+    "vision",
+    "audio",
+    "video",
+    "pdf",
+    "web-search",
+    "google-search",
+    "ai-agent"
+  ],
+  "author": "Battiatus",
   "license": "MIT",
+  "homepage": "https://github.com/Battiatus/dsh-agy-multimodal#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Battiatus/dsh-agy-multimodal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Battiatus/dsh-agy-multimodal/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "test": "node --test"
   },
@@ -36,6 +69,8 @@
     "client.js",
     "lib/*.js",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "README.fr.md",
+    "LICENSE"
   ]
 }
