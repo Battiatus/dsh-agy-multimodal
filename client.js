@@ -2,7 +2,7 @@
 // DSH charge ce fichier tel quel dans le navigateur (script classique concaténé) : ni import/export ni JSX,
 // tout vit dans la fabrique enregistrée auprès de __ModuleLoader__, dont l'id doit égaler le nom du paquet.
 window.__ModuleLoader__.load({
-  id: 'dsh-gemini-antigravity-auth',
+  id: 'gemini-dsh',
   factory: (require) => {
     const React = require('react');
     const { Button, StateDot, Switch, Tag } = require('@deepseek-ai/dsh-client-ui-primitives');

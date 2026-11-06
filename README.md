@@ -37,7 +37,7 @@ Sign in with Google, pick a Gemini model, and let your agent search the web and 
 Close DeepSeek Harness, then run:
 
 ```bash
-dsh plugin --profile desktop add github:Battiatus/dsh-gemini-antigravity-auth
+dsh plugin --profile desktop add gemini-dsh
 ```
 
 Restart DeepSeek Harness. That's it.
@@ -55,13 +55,13 @@ git+https://github.com/Battiatus/dsh-gemini-antigravity-auth.git
 **Update**
 
 ```bash
-dsh plugin --profile desktop update dsh-gemini-antigravity-auth
+dsh plugin --profile desktop update gemini-dsh
 ```
 
 **Uninstall**
 
 ```bash
-dsh plugin --profile desktop remove dsh-gemini-antigravity-auth
+dsh plugin --profile desktop remove gemini-dsh
 ```
 
 ## Usage
