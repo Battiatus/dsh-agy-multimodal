@@ -1,5 +1,5 @@
 {
-  "name": "dsh-agy-multimodal",
+  "name": "dsh-gemini-antigravity-auth",
   "version": "0.1.0",
   "type": "module",
   "description": "Gemini models from your Google Antigravity subscription inside DeepSeek Harness: Google OAuth, multi-account quotas, Google Search grounding, and image, audio, video and PDF understanding.",
@@ -26,13 +26,13 @@
   ],
   "author": "Battiatus",
   "license": "MIT",
-  "homepage": "https://github.com/Battiatus/dsh-agy-multimodal#readme",
+  "homepage": "https://github.com/Battiatus/dsh-gemini-antigravity-auth#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Battiatus/dsh-agy-multimodal.git"
+    "url": "git+https://github.com/Battiatus/dsh-gemini-antigravity-auth.git"
   },
   "bugs": {
-    "url": "https://github.com/Battiatus/dsh-agy-multimodal/issues"
+    "url": "https://github.com/Battiatus/dsh-gemini-antigravity-auth/issues"
   },
   "engines": {
     "node": ">=22"

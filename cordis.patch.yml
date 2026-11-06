@@ -1,4 +1,4 @@
 # Ajoute le plugin au profil DSH lors de l'installation du bundle.
 - insert:
     - id: agy-multimodal
-      name: 'dsh-agy-multimodal'
+      name: 'dsh-gemini-antigravity-auth'

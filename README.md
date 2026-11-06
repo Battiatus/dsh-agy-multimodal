@@ -1,4 +1,4 @@
-<h1 align="center">dsh-agy-multimodal</h1>
+<h1 align="center">dsh-gemini-antigravity-auth</h1>
 
 <p align="center"><strong>Gemini for DeepSeek Harness, with your Google Antigravity subscription.</strong><br>
 Sign in with Google, pick a Gemini model, and let your agent search the web and understand images, audio, video and PDFs.</p>
@@ -19,7 +19,7 @@ Sign in with Google, pick a Gemini model, and let your agent search the web and 
 
 ---
 
-**dsh-agy-multimodal** is a [DeepSeek Harness](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) (DSH) plugin that adds Google **Gemini** models through **Google Antigravity** OAuth. No API key, no extra CLI: you log in with your Google account and the Gemini models appear in the DSH model picker, next to your other providers.
+**dsh-gemini-antigravity-auth** is a [DeepSeek Harness](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin) (DSH) plugin that adds Google **Gemini** models through **Google Antigravity** OAuth. No API key, no extra CLI: you log in with your Google account and the Gemini models appear in the DSH model picker, next to your other providers.
 
 ## Features
 
@@ -37,7 +37,7 @@ Sign in with Google, pick a Gemini model, and let your agent search the web and 
 Close DeepSeek Harness, then run:
 
 ```bash
-dsh plugin --profile desktop add github:Battiatus/dsh-agy-multimodal
+dsh plugin --profile desktop add github:Battiatus/dsh-gemini-antigravity-auth
 ```
 
 Restart DeepSeek Harness. That's it.
@@ -49,13 +49,13 @@ Restart DeepSeek Harness. That's it.
 **Update**
 
 ```bash
-dsh plugin --profile desktop update dsh-agy-multimodal
+dsh plugin --profile desktop update dsh-gemini-antigravity-auth
 ```
 
 **Uninstall**
 
 ```bash
-dsh plugin --profile desktop remove dsh-agy-multimodal
+dsh plugin --profile desktop remove dsh-gemini-antigravity-auth
 ```
 
 ## Usage
@@ -97,8 +97,8 @@ Update the plugin. Recent versions convert multi-type and tuple schemas into a f
 ## Development
 
 ```bash
-git clone https://github.com/Battiatus/dsh-agy-multimodal.git
-cd dsh-agy-multimodal && npm install && npm test
+git clone https://github.com/Battiatus/dsh-gemini-antigravity-auth.git
+cd dsh-gemini-antigravity-auth && npm install && npm test
 dsh plugin --profile desktop add link:$PWD
 ```
 
