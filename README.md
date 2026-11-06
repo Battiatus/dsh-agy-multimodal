@@ -24,7 +24,7 @@ Sign in with Google, pick a Gemini model, and let your agent search the web and 
 ## Features
 
 - 🔐 **Google sign-in (OAuth)**: one click from the settings screen or `/agy login`. No API key to copy.
-- 🤖 **Gemini models in the model picker**: Gemini 4 Argon, Gemini 3.8 Flash and Gemini 3.5 Flash, with low / medium / high reasoning.
+- 🤖 **Your Gemini models, detected automatically**: the picker shows exactly the Gemini models your Antigravity subscription includes (for example Gemini 3.8 Flash with low / medium / high reasoning), read from your account at sign-in.
 - 👥 **Several Google accounts**: add, switch and remove accounts, and see the remaining quota of each one, with its reset time.
 - 🖼️ **Multimodal attachments**: images, audio, video and PDF attached to a message go straight to Gemini.
 - 🔎 **`agy_web_search` tool**: Google Search grounding with sources, usable by any agent.

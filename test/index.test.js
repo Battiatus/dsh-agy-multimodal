@@ -36,13 +36,9 @@ function fakeHost() {
 test('le plugin enregistre son adaptateur, ses deux outils, /agy et sa route', async () => {
   const host = fakeHost();
   const adapter = host.adapters['agy-mm'];
-  const ids = (await adapter.listModels('agy-mm')).map((m) => m.id);
-  assert.ok(ids.includes('gemini-3.8-flash'), ids.join());
-  assert.ok(!ids.some((id) => id.includes('image') || id.includes('claude')));
-  const model = await adapter.resolveModel('agy-mm', 'gemini-3.8-flash');
-  assert.equal(model.context.contextWindow, 1048576);
-  assert.equal(model.reasoning.defaultEffort, 'medium');
-  await assert.rejects(adapter.resolveModel('agy-mm', 'inconnu'), /unknown model/);
+  // sans compte, aucun modèle : la liste vient du compte connecté (fetchAvailableModels)
+  assert.deepEqual(await adapter.listModels('agy-mm'), []);
+  await assert.rejects(adapter.resolveModel('agy-mm', 'gemini-3.8-flash'), /no Antigravity account/);
   assert.deepEqual(Object.keys(host.tools).sort(), ['agy_media', 'agy_web_search']);
   assert.equal((await host.commands.agy.handler({ rawInput: '' })).text, 'No account: run /agy login');
   assert.ok(host.routes['/api/agy-multimodal']);
@@ -80,7 +76,7 @@ test('les interrupteurs d\'accès retirent outils et modèles, et sont enregistr
   assert.ok(!(await adapter.listModels('agy-mm')).some((m) => m.id === 'gemini-4-argon'));
   assert.deepEqual(host.emitted, ['llm/adapters-updated']);
   const saved = JSON.parse(await readFile(join(process.env.HOME, '.dsh/agy-multimodal/settings.json'), 'utf8'));
-  assert.deepEqual(saved, { gemini: true, web: false, media: true, hiddenModels: ['gemini-4-argon'] });
+  assert.deepEqual(saved, { gemini: true, web: false, media: true, hiddenModels: ['gemini-4-argon', 'inventé'] });
 
   await host.rpc('settings', { gemini: false, web: true });
   assert.deepEqual(Object.keys(host.tools).sort(), ['agy_media', 'agy_web_search']);

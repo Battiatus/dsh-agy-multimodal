@@ -18,7 +18,7 @@ Connectez-vous avec Google, choisissez un modèle Gemini, et votre agent cherche
 ## Fonctionnalités
 
 - 🔐 **Connexion Google (OAuth)** : un clic dans les réglages ou `/agy login`. Aucune clé API à copier.
-- 🤖 **Modèles Gemini dans le sélecteur** : Gemini 4 Argon, Gemini 3.8 Flash et Gemini 3.5 Flash, réflexion low / medium / high.
+- 🤖 **Vos modèles Gemini, détectés automatiquement** : le sélecteur affiche exactement les modèles Gemini inclus dans votre abonnement Antigravity (par exemple Gemini 3.8 Flash avec réflexion low / medium / high), lus sur votre compte à la connexion.
 - 👥 **Plusieurs comptes Google** : ajouter, changer, retirer, et voir le quota restant de chacun avec son heure de remise à zéro.
 - 🖼️ **Pièces jointes multimodales** : images, audio, vidéo et PDF joints au message partent tels quels vers Gemini.
 - 🔎 **Outil `agy_web_search`** : recherche Google avec sources, utilisable par tous les agents.

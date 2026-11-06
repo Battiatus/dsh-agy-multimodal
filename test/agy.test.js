@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mediaType, sourcesOf, sseEvents, textOf } from '../lib/agy.js';
+import { geminiModels, mediaType, sourcesOf, sseEvents, textOf, wireOf } from '../lib/agy.js';
 
 test('textOf ignore le raisonnement et lit la réponse enveloppée', () => {
   const reply = { response: { candidates: [{ content: { parts: [
@@ -51,4 +51,26 @@ test('plusieurs comptes : liste sans jetons, bascule, retrait de l\'actif', asyn
   await agy.remove('a@x');
   assert.equal(await agy.account(), null);
   await assert.rejects(agy.credentials(), /no Antigravity account/);
+});
+
+test('geminiModels garde les modèles Gemini texte du compte et regroupe leurs niveaux', () => {
+  const g = (displayName, model, extra = {}) => ({ displayName, model, apiProvider: 'API_PROVIDER_GOOGLE_GEMINI', maxTokens: 1048576, maxOutputTokens: 65536, ...extra });
+  const list = geminiModels({
+    'gemini-3.8-flash-low': g('Gemini 3.8 Flash (Low)', 'MODEL_PLACEHOLDER_M320'),
+    'gemini-3.8-flash-high': g('Gemini 3.8 Flash (High)', 'MODEL_PLACEHOLDER_M318'),
+    'gemini-3.8-flash-medium': g('Gemini 3.8 Flash (Medium)', 'MODEL_PLACEHOLDER_M319'),
+    'gemini-2.5-flash': g('Gemini 3.5 Flash Lite', 'MODEL_GOOGLE_GEMINI_2_5_FLASH'),
+    'gemini-3.5-flash-lite': g('Gemini 3.5 Flash Lite', 'MODEL_PLACEHOLDER_M198'),
+    'gemini-4-argon-disabled': g('Gemini 4 Argon', 'MODEL_PLACEHOLDER_M421', { disabled: true }),
+    'gemini-3.1-flash-image': g('Gemini 3.1 Flash Image', 'MODEL_PLACEHOLDER_M21'),
+    'claude-sonnet-4-6': g('Claude Sonnet 4.6', 'MODEL_PLACEHOLDER_M35', { apiProvider: 'API_PROVIDER_ANTHROPIC_VERTEX' }),
+    chat_23310: { model: 'MODEL_CHAT_23310', isInternal: true },
+  });
+  assert.deepEqual(list.map((m) => [m.id, m.name, m.efforts.join('/')]), [
+    ['gemini-3.8-flash', 'Gemini 3.8 Flash', 'low/medium/high'],
+    ['gemini-3.5-flash-lite', 'Gemini 3.5 Flash Lite', ''],
+  ]);
+  assert.equal(wireOf(list[0], 'high'), 'gemini-3.8-flash-high');
+  assert.equal(wireOf(list[0], undefined), 'gemini-3.8-flash-medium');
+  assert.equal(wireOf(list[1], 'high'), 'gemini-3.5-flash-lite');
 });

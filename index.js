@@ -3,29 +3,24 @@
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { getPublicModelDefinitions } from '@cortexkit/antigravity-auth-core';
-import { Agy, DEFAULT_ACCOUNT_PATH, MAX_REQUEST_BYTES, mediaType, sourcesOf, sseEvents, textOf } from './lib/agy.js';
+import { Agy, DEFAULT_ACCOUNT_PATH, MAX_REQUEST_BYTES, mediaType, sourcesOf, sseEvents, textOf, wireOf } from './lib/agy.js';
 import { failureOf, toChunks, toRequest } from './lib/gemini.js';
 
 export const name = 'agy-multimodal';
 export const inject = ['llm', 'attachments'];
 
 const PROVIDER = 'agy-mm'; // route propre : google-antigravity, google et agy sont déjà pris par d'autres plugins
-const TOOL_MODEL = 'gemini-3.8-flash-medium';
+const TOOL_MODEL = 'gemini-3.8-flash'; // préféré pour les outils, sinon le premier modèle du compte
 const SETTINGS_PATH = join(dirname(DEFAULT_ACCOUNT_PATH), 'settings.json');
 const QUOTA_TTL_MS = 30_000; // évite de solliciter Google à chaque ouverture de l'écran
+const MODELS_TTL_MS = 5 * 60_000; // le sélecteur de DSH relit souvent la liste
 
-// Modèles Gemini texte du catalogue de la bibliothèque (sans le préfixe antigravity-), avec leurs niveaux de réflexion
-const MODELS = Object.values(getPublicModelDefinitions())
-  .filter((d) => d.id.includes('gemini') && !d.modalities.output.includes('image'))
-  .map((d) => ({ id: d.id.replace(/^antigravity-/, ''), name: d.name.replace(' (Antigravity)', ''), limit: d.limit, efforts: Object.keys(d.variants ?? {}) }));
-
-/** Réglages d'accès validés : interrupteurs booléens et modèles masqués connus. */
+/** Réglages d'accès validés : interrupteurs booléens et ids de modèles masqués. */
 export function cleanSettings(value = {}) {
   const flag = (v) => v !== false;
   return {
     gemini: flag(value.gemini), web: flag(value.web), media: flag(value.media),
-    hiddenModels: Array.isArray(value.hiddenModels) ? MODELS.map((m) => m.id).filter((id) => value.hiddenModels.includes(id)) : [],
+    hiddenModels: Array.isArray(value.hiddenModels) ? [...new Set(value.hiddenModels.filter((id) => typeof id === 'string' && id.length <= 200))] : [],
   };
 }
 
@@ -67,17 +62,45 @@ export function apply(ctx) {
   const agy = new Agy();
   let settings = loadSettings();
 
+  // Modèles du compte actif, relus au plus toutes les 5 min ; sans compte ou hors ligne : la dernière liste connue
+  let catalog = { at: 0, list: [] };
+  const models = async () => {
+    if (Date.now() - catalog.at < MODELS_TTL_MS) return catalog.list;
+    try {
+      catalog = { at: Date.now(), list: await agy.models() };
+    } catch {
+      catalog.at = Date.now() - MODELS_TTL_MS + 30_000; // réessai dans 30 s
+    }
+    return catalog.list;
+  };
+  const modelsChanged = () => {
+    catalog = { at: 0, list: [] };
+    ctx.emit('llm/adapters-updated'); // le sélecteur de modèles de DSH relit la liste
+  };
+  const findModel = async (id) => {
+    const m = (await models()).find((x) => x.id === id);
+    if (m) return m;
+    await agy.credentials(); // sans compte : l'erreur « no Antigravity account » plutôt qu'un modèle inconnu
+    throw Object.assign(new Error(`unknown model: ${id}`), { failure: { message: `unknown model: ${id}`, code: 'INVALID_MODEL' } });
+  };
+  const toolModel = async () => {
+    const list = await models();
+    const m = list.find((x) => x.id === TOOL_MODEL) ?? list[0];
+    if (m) return wireOf(m, 'medium');
+    await agy.credentials();
+    throw new Error('no Gemini model available on this Antigravity account');
+  };
+
   ctx.llm.registerAdapter([PROVIDER], {
     providerInfo: (provider) => ({ id: provider, name: 'Gemini (Antigravity)' }),
     providerRetryPolicy: () => undefined,
     imageRequestPricing: () => undefined,
     imageRequestTarget: (_p, _m, image) => ({ width: image.width, height: image.height, maxBytes: image.bytes }),
-    listModels: async (provider) => (settings.gemini ? MODELS : [])
+    listModels: async (provider) => (settings.gemini ? await models() : [])
       .filter((m) => !settings.hiddenModels.includes(m.id))
       .map(({ id, name }) => ({ provider, id, name, inputModalities: ['text', 'image'] })),
     async resolveModel(provider, model) {
-      const m = MODELS.find((x) => x.id === model);
-      if (!m) throw Object.assign(new Error(`unknown model: ${model}`), { failure: { message: `unknown model: ${model}`, code: 'INVALID_MODEL' } });
+      const m = await findModel(model);
       return {
         provider, id: m.id, name: m.name, inputModalities: ['text', 'image'],
         context: { contextWindow: m.limit.context }, defaultMaxTokens: m.limit.output,
@@ -93,7 +116,7 @@ export function apply(ctx) {
         return;
       }
       try {
-        const wire = `${options.model}-${options.reasoningEffort ?? 'medium'}`;
+        const wire = wireOf(await findModel(options.model), options.reasoningEffort);
         const readImage = async (ref) => {
           const stored = await ctx.attachments.readImage(ref, options.signal);
           return { data: stored.data, mediaType: stored.ref.mediaType };
@@ -120,7 +143,7 @@ export function apply(ctx) {
         render: (_args, value) => [{ type: 'text', text: [value.text, ...value.sources.map((s) => `- ${s.title} : ${s.uri}`)].join('\n') }],
       },
       async execute({ query }, exec) {
-        const reply = await agy.call(TOOL_MODEL, { contents: [{ role: 'user', parts: [{ text: query }] }], tools: [{ googleSearch: {} }] }, { signal: exec.signal });
+        const reply = await agy.call(await toolModel(), { contents: [{ role: 'user', parts: [{ text: query }] }], tools: [{ googleSearch: {} }] }, { signal: exec.signal });
         return { text: textOf(reply), sources: sourcesOf(reply) };
       },
       isConcurrencySafe: () => true,
@@ -136,7 +159,7 @@ export function apply(ctx) {
       async execute({ path, prompt }, exec) {
         const mimeType = mediaType(path);
         const data = await readWorkspaceFile(fs, exec, path);
-        const reply = await agy.call(TOOL_MODEL, { contents: [{ role: 'user', parts: [
+        const reply = await agy.call(await toolModel(), { contents: [{ role: 'user', parts: [
           { inlineData: { mimeType, data: Buffer.from(data).toString('base64') } }, { text: prompt }] }] }, { signal: exec.signal });
         return { text: textOf(reply) };
       },
@@ -172,7 +195,7 @@ export function apply(ctx) {
     const controller = new AbortController();
     login = { controller, error: null };
     agy.login({ signal: controller.signal }).then(
-      () => { login = { controller: null, error: null }; },
+      () => { login = { controller: null, error: null }; modelsChanged(); },
       (error) => { login = { controller: null, error: controller.signal.aborted ? null : error.message }; },
     );
   };
@@ -183,22 +206,24 @@ export function apply(ctx) {
       accounts: await agy.accounts(),
       login: { pending: Boolean(login.controller), error: login.error },
       settings,
-      models: MODELS.map(({ id, name }) => ({ id, name })),
+      models: (await models()).map(({ id, name }) => ({ id, name })),
     }),
     login: async () => { startLogin(); return {}; },
     'login.cancel': async () => { login.controller?.abort(); return {}; },
-    'account.use': async ({ email }) => { await agy.use(String(email)); return {}; },
+    'account.use': async ({ email }) => { await agy.use(String(email)); modelsChanged(); return {}; },
     'account.remove': async ({ email }) => {
       await agy.remove(String(email));
       quotas.delete(String(email));
+      modelsChanged();
       return {};
     },
     quota: async ({ email, force }) => {
       const hit = quotas.get(String(email));
       if (hit && force !== true && Date.now() - hit.at < QUOTA_TTL_MS) return hit.value;
       const { gemini, models } = await agy.quota(String(email));
-      // seuls les modèles proposés par ce plugin (le catalogue en compte une quinzaine)
-      const value = { gemini, models: models.filter((m) => MODELS.some(({ id }) => m.modelId.startsWith(id))) };
+      // seuls les modèles proposés par ce plugin (le compte en liste une vingtaine, dont des modèles internes)
+      const offered = new Set((await models()).flatMap((m) => m.ids));
+      const value = { gemini, models: models.filter((m) => offered.has(m.modelId)) };
       quotas.set(String(email), { at: Date.now(), value });
       return value;
     },
@@ -229,16 +254,19 @@ export function apply(ctx) {
         try {
           if (action === 'login') {
             const { email: added } = await agy.login({ signal });
+            modelsChanged();
             return { kind: 'success', text: `Connected (${added}). Pick a "Gemini (Antigravity)" model.` };
           }
           if (action === 'use' && email) {
             await agy.use(email);
+            modelsChanged();
             return { kind: 'success', text: `Active account: ${email}` };
           }
           if (action === 'logout') {
             const target = email ?? (await agy.account())?.email;
             if (!target) return { kind: 'error', text: 'No account connected.' };
             await agy.remove(target);
+            modelsChanged();
             return { kind: 'success', text: `${target} signed out: its tokens were deleted from this machine.` };
           }
           if (action === 'status') {
