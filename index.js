@@ -54,7 +54,7 @@ export async function handleRpc(methods, request) {
   const rpcId = typeof message?.rpcId === 'string' ? message.rpcId : 'invalid-request';
   const call = message?.payload;
   if (message?.type !== 'client-request' || typeof call?.method !== 'string' || !Object.hasOwn(methods, call.method)) {
-    return fail(rpcId, 'agy-mm/bad-request', 'requête invalide');
+    return fail(rpcId, 'agy-mm/bad-request', 'invalid request');
   }
   try {
     return reply(rpcId, { ok: true, value: await methods[call.method](call.payload ?? {}) });
@@ -77,7 +77,7 @@ export function apply(ctx) {
       .map(({ id, name }) => ({ provider, id, name, inputModalities: ['text', 'image'] })),
     async resolveModel(provider, model) {
       const m = MODELS.find((x) => x.id === model);
-      if (!m) throw Object.assign(new Error(`modèle inconnu : ${model}`), { failure: { message: `modèle inconnu : ${model}`, code: 'INVALID_MODEL' } });
+      if (!m) throw Object.assign(new Error(`unknown model: ${model}`), { failure: { message: `unknown model: ${model}`, code: 'INVALID_MODEL' } });
       return {
         provider, id: m.id, name: m.name, inputModalities: ['text', 'image'],
         context: { contextWindow: m.limit.context }, defaultMaxTokens: m.limit.output,
@@ -89,7 +89,7 @@ export function apply(ctx) {
     },
     async *stream(options) {
       if (!settings.gemini) {
-        yield { type: 'finish', reason: { kind: 'error', failure: { message: 'Modèles Gemini désactivés dans Réglages › Antigravity (Gemini)', code: 'DISABLED' } } };
+        yield { type: 'finish', reason: { kind: 'error', failure: { message: 'Gemini models are turned off in Settings › Antigravity (Gemini)', code: 'DISABLED' } } };
         return;
       }
       try {
@@ -102,7 +102,7 @@ export function apply(ctx) {
         yield* toChunks(sseEvents(response.body), options);
       } catch (error) {
         yield options.signal?.aborted
-          ? { type: 'finish', reason: { kind: 'aborted', failure: { message: 'requête annulée', code: 'CANCELLED' } } }
+          ? { type: 'finish', reason: { kind: 'aborted', failure: { message: 'request cancelled', code: 'CANCELLED' } } }
           : { type: 'finish', reason: { kind: 'error', failure: failureOf(error) } };
       }
     },
@@ -113,7 +113,7 @@ export function apply(ctx) {
   const TOOLS = {
     web: () => ({
       name: 'agy_web_search',
-      description: 'Recherche sur le web avec Google Search (Gemini via Antigravity). Rend une réponse synthétique et ses sources.',
+      description: 'Searches the web with Google Search (Gemini via Antigravity). Returns a concise answer with its sources.',
       parameters: { type: 'object', properties: { query: { type: 'string', minLength: 1, maxLength: 4096 } }, required: ['query'], additionalProperties: false },
       output: {
         schema: { type: 'object', properties: { text: { type: 'string' }, sources: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, uri: { type: 'string' } } } } } },
@@ -127,10 +127,10 @@ export function apply(ctx) {
     }),
     media: (fs) => ({
       name: 'agy_media',
-      description: 'Analyse un fichier image, audio, vidéo ou PDF du dossier de travail avec Gemini : décrire, transcrire, résumer, répondre à une question. Taille max ~36 Mo.',
+      description: 'Analyses an image, audio, video or PDF file from the working folder with Gemini: describe, transcribe, summarise or answer a question. Max size ~36 MB.',
       parameters: { type: 'object', properties: {
         path: { type: 'string', minLength: 1, maxLength: 4096, description: 'chemin dans le dossier de travail' },
-        prompt: { type: 'string', minLength: 1, maxLength: 16384, description: 'consigne pour le modèle' },
+        prompt: { type: 'string', minLength: 1, maxLength: 16384, description: 'instruction for the model' },
       }, required: ['path', 'prompt'], additionalProperties: false },
       output: { schema: text, render: (_args, value) => [{ type: 'text', text: value.text }] },
       async execute({ path, prompt }, exec) {
@@ -222,30 +222,30 @@ export function apply(ctx) {
   ctx.inject(['commands'], (commandCtx) => {
     commandCtx.commands.register({
       name: 'agy',
-      description: 'Comptes Google Antigravity pour les modèles Gemini (/agy login | status | use <email> | logout)',
+      description: 'Google Antigravity accounts for Gemini models (/agy login | status | use <email> | logout)',
       input: { hint: '[login|status|use <email>|logout]' },
       async handler({ rawInput, signal }) {
         const [action = 'status', email] = rawInput.trim().split(/\s+/).filter(Boolean);
         try {
           if (action === 'login') {
             const { email: added } = await agy.login({ signal });
-            return { kind: 'success', text: `Connecté (${added}). Choisissez un modèle « Gemini (Antigravity) ».` };
+            return { kind: 'success', text: `Connected (${added}). Pick a "Gemini (Antigravity)" model.` };
           }
           if (action === 'use' && email) {
             await agy.use(email);
-            return { kind: 'success', text: `Compte actif : ${email}` };
+            return { kind: 'success', text: `Active account: ${email}` };
           }
           if (action === 'logout') {
             const target = email ?? (await agy.account())?.email;
-            if (!target) return { kind: 'error', text: 'Aucun compte connecté.' };
+            if (!target) return { kind: 'error', text: 'No account connected.' };
             await agy.remove(target);
-            return { kind: 'success', text: `${target} déconnecté : ses jetons sont supprimés de cette machine.` };
+            return { kind: 'success', text: `${target} signed out: its tokens were deleted from this machine.` };
           }
           if (action === 'status') {
             const list = await agy.accounts();
-            return { kind: 'success', text: list.length ? list.map((a) => `${a.active ? '● ' : '○ '}${a.email}`).join('\n') : 'Aucun compte : lancez /agy login' };
+            return { kind: 'success', text: list.length ? list.map((a) => `${a.active ? '● ' : '○ '}${a.email}`).join('\n') : 'No account: run /agy login' };
           }
-          return { kind: 'error', text: 'usage : /agy login | status | use <email> | logout [email]' };
+          return { kind: 'error', text: 'usage: /agy login | status | use <email> | logout [email]' };
         } catch (error) {
           return { kind: 'error', text: error.message };
         }
@@ -257,15 +257,15 @@ export function apply(ctx) {
 /** Octets d'un fichier ordinaire du dossier de travail (ni lien symbolique, ni hors du dossier). */
 async function readWorkspaceFile(fs, exec, path) {
   const cwd = exec.agent?.session?.header?.cwd;
-  if (!cwd) throw new Error('aucun dossier de travail actif');
+  if (!cwd) throw new Error('no active working folder');
   const entry = await fs.lstat(path, { cwd }, exec.signal);
-  if (entry?.type !== 'file') throw new Error(`${path} : pas un fichier ordinaire (lien symbolique ou dossier refusé)`);
+  if (entry?.type !== 'file') throw new Error(`${path}: not a regular file (symlinks and folders are refused)`);
   const root = await fs.resolve(cwd, { cwd, signal: exec.signal });
   const target = await fs.resolve(path, { cwd, signal: exec.signal });
-  if (!fs.contains(root, target)) throw new Error(`${path} : hors du dossier de travail`);
+  if (!fs.contains(root, target)) throw new Error(`${path}: outside the working folder`);
   // shortcut: pas de contrôle de version avant/après lecture (fichier remplacé pendant la lecture), à ajouter si le dossier est partagé
   const maxBytes = Math.floor(MAX_REQUEST_BYTES * 3 / 4);
   const data = await fs.readBytes(target, exec.signal, maxBytes + 1);
-  if (data.byteLength > maxBytes) throw new Error(`${path} : plus de ${(maxBytes / 1e6).toFixed(0)} Mo, trop lourd pour un envoi en ligne`);
+  if (data.byteLength > maxBytes) throw new Error(`${path}: over ${(maxBytes / 1e6).toFixed(0)} MB, too large to send inline`);
   return data;
 }

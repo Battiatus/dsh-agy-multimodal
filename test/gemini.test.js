@@ -121,6 +121,6 @@ test('failureOf classe les erreurs pour la politique de nouvelle tentative de DS
   assert.equal(failureOf(err(503)).code, 'SERVER');
   assert.equal(failureOf(err(400, 'input token count exceeds')).code, 'CONTEXT_WINDOW_EXCEEDED');
   assert.equal(failureOf(err(400)).code, 'INVALID_REQUEST');
-  assert.equal(failureOf(new Error('aucun compte Antigravity')).code, 'MISSING_CREDENTIAL');
+  assert.equal(failureOf(new Error('no Antigravity account: run /agy login')).code, 'MISSING_CREDENTIAL');
   assert.equal(failureOf(new Error('fetch failed')).code, 'TRANSPORT');
 });

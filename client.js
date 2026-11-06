@@ -35,14 +35,14 @@ window.__ModuleLoader__.load({
     function untilReset(iso) {
       const min = Math.round((Date.parse(iso) - Date.now()) / 60_000);
       if (!(min >= 0)) return '';
-      return min < 60 ? `remise à zéro dans ${min} min` : `remise à zéro dans ${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`;
+      return min < 60 ? `resets in ${min} min` : `resets in ${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`;
     }
 
     function Bar({ label, fraction, reset }) {
       return h('div', { className: 'agymm-quota' },
         h('div', { className: 'agymm-row' },
           h('span', null, label),
-          h('span', { className: 'agymm-muted' }, `${pct(fraction)} % restant${reset ? ` · ${untilReset(reset)}` : ''}`)),
+          h('span', { className: 'agymm-muted' }, `${pct(fraction)}% left${reset ? ` · ${untilReset(reset)}` : ''}`)),
         h('div', { className: 'agymm-track' }, h('i', { style: { width: `${pct(fraction)}%`, background: color(fraction) } })));
     }
 
@@ -54,11 +54,11 @@ window.__ModuleLoader__.load({
           .then((quota) => live && setState({ quota }), (error) => live && setState({ error: error.message }));
         return () => { live = false; };
       }, [call, email, refresh]);
-      if (state.error) return h('p', { className: 'agymm-error agymm-quota' }, `Quotas indisponibles : ${state.error}`);
-      if (!state.quota) return h('p', { className: 'agymm-muted agymm-quota' }, 'Lecture des quotas…');
+      if (state.error) return h('p', { className: 'agymm-error agymm-quota' }, `Quotas unavailable: ${state.error}`);
+      if (!state.quota) return h('p', { className: 'agymm-muted agymm-quota' }, 'Loading quotas…');
       const { gemini, models } = state.quota;
       return h('div', null,
-        gemini && h(Bar, { label: 'Gemini, tous modèles', fraction: gemini.remainingFraction, reset: gemini.resetTime }),
+        gemini && h(Bar, { label: 'Gemini, all models', fraction: gemini.remainingFraction, reset: gemini.resetTime }),
         h('div', null, ...models.map((m) => h(Bar, { key: m.modelId, label: m.displayName, fraction: m.remainingFraction, reset: m.resetTime }))));
     }
 
@@ -77,44 +77,44 @@ window.__ModuleLoader__.load({
       }, [pending]);
       const act = (method, payload) => call(method, payload).then(load, (e) => setError(e.message));
 
-      if (!status) return h('p', { className: error ? 'agymm-error' : 'agymm-muted' }, error ?? 'Chargement…');
+      if (!status) return h('p', { className: error ? 'agymm-error' : 'agymm-muted' }, error ?? 'Loading…');
       const { accounts, login, settings, models } = status;
       const set = (patch) => act('settings', patch);
       const hide = (id, visible) => set({ hiddenModels: visible ? settings.hiddenModels.filter((x) => x !== id) : [...settings.hiddenModels, id] });
 
       return h('div', { className: 'agymm' },
-        h('p', { className: 'agymm-muted' }, 'Connexion par OAuth Google à votre abonnement Antigravity. Canal non officiel : Google a déjà suspendu des comptes branchés ainsi.'),
+        h('p', { className: 'agymm-muted' }, 'Google OAuth sign-in to your Antigravity subscription. Unofficial channel: Google has already suspended accounts connected this way.'),
         error && h('p', { className: 'agymm-error' }, error),
 
-        h('h3', null, 'Comptes Google'),
-        accounts.length === 0 && h('p', { className: 'agymm-muted' }, 'Aucun compte connecté.'),
+        h('h3', null, 'Google accounts'),
+        accounts.length === 0 && h('p', { className: 'agymm-muted' }, 'No account connected.'),
         // chaque liste dans son propre conteneur : deux frères de même clé (l'adresse) font dupliquer les lignes par React
         h('div', null, ...accounts.map((a) => h('div', { key: a.email, className: 'agymm-row agymm-account' },
-          h('span', null, h(StateDot, { state: a.active ? 'done' : 'warning', size: 8 }), a.email, a.active && h(Tag, { tone: 'success' }, 'actif')),
+          h('span', null, h(StateDot, { state: a.active ? 'done' : 'warning', size: 8 }), a.email, a.active && h(Tag, { tone: 'success' }, 'active')),
           h('span', null,
-            !a.active && h(Button, { variant: 'outline', size: 'sm', onClick: () => act('account.use', { email: a.email }) }, 'Utiliser'),
-            h(Button, { variant: 'ghost', size: 'sm', onClick: () => act('account.remove', { email: a.email }) }, 'Retirer'))))),
+            !a.active && h(Button, { variant: 'outline', size: 'sm', onClick: () => act('account.use', { email: a.email }) }, 'Use'),
+            h(Button, { variant: 'ghost', size: 'sm', onClick: () => act('account.remove', { email: a.email }) }, 'Remove'))))),
         login.pending
           ? h('div', { className: 'agymm-row' },
-            h('span', { className: 'agymm-muted' }, 'Validez la connexion Google dans votre navigateur…'),
-            h(Button, { variant: 'ghost', size: 'sm', onClick: () => act('login.cancel') }, 'Annuler'))
+            h('span', { className: 'agymm-muted' }, 'Approve the Google sign-in in your browser…'),
+            h(Button, { variant: 'ghost', size: 'sm', onClick: () => act('login.cancel') }, 'Cancel'))
           : h('div', null, h(Button, { variant: 'outline', size: 'sm', onClick: () => act('login') },
-            accounts.length ? 'Ajouter un compte Google' : 'Se connecter avec Google')),
+            accounts.length ? 'Add a Google account' : 'Sign in with Google')),
         login.error && h('p', { className: 'agymm-error' }, login.error),
 
         h('div', { className: 'agymm-row' },
           h('h3', null, 'Quotas'),
-          accounts.length > 0 && h(Button, { variant: 'ghost', size: 'sm', onClick: () => setRefresh((n) => n + 1) }, 'Actualiser')),
-        accounts.length === 0 && h('p', { className: 'agymm-muted' }, 'Connectez un compte pour voir ses quotas.'),
+          accounts.length > 0 && h(Button, { variant: 'ghost', size: 'sm', onClick: () => setRefresh((n) => n + 1) }, 'Refresh')),
+        accounts.length === 0 && h('p', { className: 'agymm-muted' }, 'Connect an account to see its quotas.'),
         h('div', null, ...accounts.map((a) => h('div', { key: a.email },
           h('strong', null, a.email),
           h(Quota, { call, email: a.email, refresh })))),
 
-        h('h3', null, 'Accès'),
-        h(Switch, { label: 'Modèles Gemini dans le sélecteur de DSH', checked: settings.gemini, onChange: (v) => set({ gemini: v }) }),
-        h(Switch, { label: 'Recherche web (outil agy_web_search)', checked: settings.web, onChange: (v) => set({ web: v }) }),
-        h(Switch, { label: 'Analyse image, audio, vidéo, PDF (outil agy_media)', checked: settings.media, onChange: (v) => set({ media: v }) }),
-        h('p', { className: 'agymm-muted' }, 'Modèles visibles dans le sélecteur'),
+        h('h3', null, 'Access'),
+        h(Switch, { label: 'Gemini models in the DSH model picker', checked: settings.gemini, onChange: (v) => set({ gemini: v }) }),
+        h(Switch, { label: 'Web search (agy_web_search tool)', checked: settings.web, onChange: (v) => set({ web: v }) }),
+        h(Switch, { label: 'Image, audio, video and PDF analysis (agy_media tool)', checked: settings.media, onChange: (v) => set({ media: v }) }),
+        h('p', { className: 'agymm-muted' }, 'Models shown in the picker'),
         h('div', null, ...models.map((m) => h(Switch, {
           key: m.id, label: m.name, disabled: !settings.gemini,
           checked: !settings.hiddenModels.includes(m.id), onChange: (v) => hide(m.id, v),
@@ -129,12 +129,12 @@ window.__ModuleLoader__.load({
         const call = async (method, payload = {}) => {
           const result = await connection.rpc.call('/api', 'agy-multimodal', { method, payload });
           if (result?.ok === true) return result.value;
-          throw new Error(result?.error?.message ?? `${method} : réponse invalide`);
+          throw new Error(result?.error?.message ?? `${method}: invalid response`);
         };
         ctx.effect(() => installStyles(), 'agy-multimodal: styles');
         ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register(
           { name: 'settings.section', id: 'agy-multimodal', order: 35, label: 'Antigravity (Gemini)' },
-          () => h(Section, { call }))), 'agy-multimodal: section des réglages');
+          () => h(Section, { call }))), 'agy-multimodal: settings section');
       },
     };
   },

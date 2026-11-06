@@ -21,7 +21,7 @@ test('mediaType reconnaît image, audio, vidéo et refuse le reste', () => {
   assert.equal(mediaType('/x/photo.JPG'), 'image/jpeg');
   assert.equal(mediaType('conte.flac'), 'audio/flac');
   assert.equal(mediaType('conte.mp4'), 'video/mp4');
-  assert.throws(() => mediaType('notes.txt'), /non pris en charge/);
+  assert.throws(() => mediaType('notes.txt'), /unsupported format/);
 });
 
 test('sseEvents recolle les événements coupés entre deux paquets', async () => {
@@ -44,11 +44,11 @@ test('plusieurs comptes : liste sans jetons, bascule, retrait de l\'actif', asyn
   assert.deepEqual(await agy.accounts(), [{ email: 'a@x', active: true, expires: 1 }, { email: 'b@x', active: false, expires: 1 }]);
   await agy.use('b@x');
   assert.equal((await agy.account()).email, 'b@x');
-  await assert.rejects(agy.use('c@x'), /compte inconnu/);
+  await assert.rejects(agy.use('c@x'), /unknown account/);
   await agy.remove('b@x');
   assert.equal((await agy.account()).email, 'a@x');
   assert.ok(!(await readFile(path, 'utf8')).includes('b@x'));
   await agy.remove('a@x');
   assert.equal(await agy.account(), null);
-  await assert.rejects(agy.credentials(), /aucun compte/);
+  await assert.rejects(agy.credentials(), /no Antigravity account/);
 });

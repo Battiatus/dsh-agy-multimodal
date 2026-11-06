@@ -54,7 +54,7 @@ dsh plugin --profile desktop remove dsh-agy-multimodal
 
 ## Utilisation
 
-1. Ouvrez **Réglages › Antigravity (Gemini)** et cliquez sur **Se connecter avec Google** (ou tapez `/agy login`).
+1. Ouvrez **Réglages › Antigravity (Gemini)** et cliquez sur **Sign in with Google** (l'interface est en anglais) (ou tapez `/agy login`).
 2. Validez la connexion dans votre navigateur.
 3. Choisissez un modèle **Gemini (Antigravity)** dans le sélecteur et discutez.
 

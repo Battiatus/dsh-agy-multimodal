@@ -45,7 +45,7 @@ test('client.js s\'enregistre sous le nom du paquet et ajoute sa section de rég
 test('la section affiche comptes, connexion, quotas et interrupteurs d\'accès', async () => {
   const status = {
     accounts: [{ email: 'a@x', active: true }, { email: 'b@x', active: false }],
-    login: { pending: false, error: 'port 51121 déjà pris' },
+    login: { pending: false, error: 'port 51121 is already in use' },
     settings: { gemini: true, web: false, media: true, hiddenModels: ['gemini-4-argon'] },
     models: [{ id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash' }, { id: 'gemini-4-argon', name: 'Gemini 4 Argon' }],
   };
@@ -56,7 +56,7 @@ test('la section affiche comptes, connexion, quotas et interrupteurs d\'accès',
   const section = render();
   const tree = section.type(section.props); // rend la fonction Section avec les états fournis
   const text = textOf(tree);
-  for (const expected of ['a@x', 'b@x', 'actif', 'Utiliser', 'Ajouter un compte Google', 'port 51121 déjà pris', 'Quotas', 'Recherche web']) {
+  for (const expected of ['a@x', 'b@x', 'active', 'Use', 'Add a Google account', 'port 51121 is already in use', 'Quotas', 'Web search']) {
     assert.ok(text.includes(expected), `absent : ${expected}`);
   }
   const switches = [];
@@ -71,7 +71,7 @@ test('la section affiche comptes, connexion, quotas et interrupteurs d\'accès',
   };
   checkKeys(tree);
   const byLabel = Object.fromEntries(switches.map((s) => [s.label, s.checked]));
-  assert.equal(byLabel['Recherche web (outil agy_web_search)'], false);
+  assert.equal(byLabel['Web search (agy_web_search tool)'], false);
   assert.equal(byLabel['Gemini 4 Argon'], false);
   assert.equal(byLabel['Gemini 3.8 Flash'], true);
 });

@@ -1,7 +1,6 @@
 {
   "name": "dsh-agy-multimodal",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Gemini models from your Google Antigravity subscription inside DeepSeek Harness: Google OAuth, multi-account quotas, Google Search grounding, and image, audio, video and PDF understanding.",
   "keywords": [

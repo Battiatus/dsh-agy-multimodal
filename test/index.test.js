@@ -42,9 +42,9 @@ test('le plugin enregistre son adaptateur, ses deux outils, /agy et sa route', a
   const model = await adapter.resolveModel('agy-mm', 'gemini-3.8-flash');
   assert.equal(model.context.contextWindow, 1048576);
   assert.equal(model.reasoning.defaultEffort, 'medium');
-  await assert.rejects(adapter.resolveModel('agy-mm', 'inconnu'), /modèle inconnu/);
+  await assert.rejects(adapter.resolveModel('agy-mm', 'inconnu'), /unknown model/);
   assert.deepEqual(Object.keys(host.tools).sort(), ['agy_media', 'agy_web_search']);
-  assert.equal((await host.commands.agy.handler({ rawInput: '' })).text, 'Aucun compte : lancez /agy login');
+  assert.equal((await host.commands.agy.handler({ rawInput: '' })).text, 'No account: run /agy login');
   assert.ok(host.routes['/api/agy-multimodal']);
 });
 
@@ -65,10 +65,10 @@ test('la route RPC répond au format DSH et refuse ce qui n\'est pas une requêt
   assert.equal(status.result.value.login.pending, false);
   assert.equal(await host.rpc('status', {}, 'text/plain'), 415);
   const unknown = await host.rpc('constructor', {});
-  assert.deepEqual(unknown.result.error, { code: 'agy-mm/bad-request', message: 'requête invalide', details: {} });
+  assert.deepEqual(unknown.result.error, { code: 'agy-mm/bad-request', message: 'invalid request', details: {} });
   const failed = await host.rpc('account.use', { email: 'x@y' });
   assert.equal(failed.result.ok, false);
-  assert.match(failed.result.error.message, /compte inconnu/);
+  assert.match(failed.result.error.message, /unknown account/);
   assert.deepEqual(failed.result.error.details, {});
 });
 

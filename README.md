@@ -60,7 +60,7 @@ dsh plugin --profile desktop remove dsh-agy-multimodal
 
 ## Usage
 
-1. Open **Settings › Antigravity (Gemini)** and click **Se connecter avec Google** (or type `/agy login`). The settings screen is in French for now.
+1. Open **Settings › Antigravity (Gemini)** and click **Sign in with Google** (or type `/agy login`).
 2. Approve the sign-in in your browser.
 3. Pick a **Gemini (Antigravity)** model in the model picker and start chatting.
 
