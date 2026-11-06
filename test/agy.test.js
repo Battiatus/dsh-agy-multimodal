@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { geminiModels, mediaType, sourcesOf, sseEvents, textOf, wireOf } from '../lib/agy.js';
+import { mediaType, offeredModels, sourcesOf, sseEvents, textOf } from '../lib/agy.js';
 
 test('textOf ignore le raisonnement et lit la réponse enveloppée', () => {
   const reply = { response: { candidates: [{ content: { parts: [
@@ -53,28 +53,29 @@ test('plusieurs comptes : liste sans jetons, bascule, retrait de l\'actif', asyn
   await assert.rejects(agy.credentials(), /no Antigravity account/);
 });
 
-test('geminiModels garde les modèles Gemini texte du compte et regroupe leurs niveaux', () => {
-  const g = (displayName, model, extra = {}) => ({ displayName, model, apiProvider: 'API_PROVIDER_GOOGLE_GEMINI', maxTokens: 1048576, maxOutputTokens: 65536, ...extra });
-  const models = {
-    'gemini-3.8-flash-low': g('Gemini 3.8 Flash (Low)', 'MODEL_PLACEHOLDER_M320'),
-    'gemini-3.8-flash-high': g('Gemini 3.8 Flash (High)', 'MODEL_PLACEHOLDER_M318'),
-    'gemini-3.8-flash-medium': g('Gemini 3.8 Flash (Medium)', 'MODEL_PLACEHOLDER_M319'),
-    'gemini-2.5-flash': g('Gemini 3.5 Flash Lite', 'MODEL_GOOGLE_GEMINI_2_5_FLASH'),
-    'gemini-3.5-flash-lite': g('Gemini 3.5 Flash Lite', 'MODEL_PLACEHOLDER_M198'),
-    'gemini-4-argon-disabled': g('Gemini 4 Argon', 'MODEL_PLACEHOLDER_M421', { disabled: true }),
-    'gemini-3.1-flash-image': g('Gemini 3.1 Flash Image', 'MODEL_PLACEHOLDER_M21'),
-    'claude-sonnet-4-6': g('Claude Sonnet 4.6', 'MODEL_PLACEHOLDER_M35', { apiProvider: 'API_PROVIDER_ANTHROPIC_VERTEX' }),
-    chat_23310: { model: 'MODEL_CHAT_23310', isInternal: true },
-  };
-  // seuls les modèles du sélecteur d'Antigravity (agentModelSorts) : 3.5 Flash Lite ne sert qu'en coulisse
-  const agentModelSorts = [{ displayName: 'Recommended', groups: [{ modelIds: [
-    'gemini-3.8-flash-high', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low', 'claude-sonnet-4-6', 'gemini-4-argon-disabled'] }] }];
-  const list = geminiModels({ models, agentModelSorts });
-  assert.deepEqual(list.map((m) => [m.id, m.name, m.efforts.join('/')]), [['gemini-3.8-flash', 'Gemini 3.8 Flash', 'low/medium/high']]);
-  assert.equal(wireOf(list[0], 'high'), 'gemini-3.8-flash-high');
-  assert.equal(wireOf(list[0], undefined), 'gemini-3.8-flash-medium');
-  // sans agentModelSorts, repli sur tous les modèles Gemini texte, un id par nom affiché
-  const all = geminiModels({ models });
-  assert.deepEqual(all.map((m) => m.id), ['gemini-3.8-flash', 'gemini-3.5-flash-lite']);
-  assert.equal(wireOf(all[1], 'high'), 'gemini-3.5-flash-lite');
+test('offeredModels reprend la liste du sélecteur de Google telle quelle, sans les modèles indisponibles', () => {
+  const m = (displayName, extra = {}) => ({ displayName, maxTokens: 1048576, maxOutputTokens: 65536, supportsImages: true, ...extra });
+  const offer = offeredModels({
+    models: {
+      'gemini-3.8-flash-high': m('Gemini 3.8 Flash (High)'),
+      'gemini-3.8-flash-low': m('Gemini 3.8 Flash (Low)'),
+      'claude-sonnet-4-6': m('Claude Sonnet 4.6 (Thinking)', { maxTokens: 250000 }),
+      'gpt-oss-120b-medium': m('GPT-OSS 120B (Medium)', { supportsImages: undefined }),
+      'gemini-4-argon-disabled': m('Gemini 4 Argon', { disabled: true }),
+      'gemini-3.5-flash-lite': m('Gemini 3.5 Flash Lite'),
+    },
+    agentModelSorts: [{ displayName: 'Recommended', groups: [{ modelIds: [
+      'gemini-3.8-flash-high', 'gemini-3.8-flash-low', 'claude-sonnet-4-6', 'gpt-oss-120b-medium', 'gemini-4-argon-disabled'] }] }],
+    defaultAgentModelId: 'gemini-3.8-flash-high',
+    webSearchModelIds: ['gemini-3.5-flash-lite'],
+  });
+  assert.deepEqual(offer.models.map((x) => [x.id, x.name, x.images]), [
+    ['gemini-3.8-flash-high', 'Gemini 3.8 Flash (High)', true],
+    ['gemini-3.8-flash-low', 'Gemini 3.8 Flash (Low)', true],
+    ['claude-sonnet-4-6', 'Claude Sonnet 4.6 (Thinking)', true],
+    ['gpt-oss-120b-medium', 'GPT-OSS 120B (Medium)', false],
+  ]);
+  assert.equal(offer.models[2].limit.context, 250000);
+  assert.equal(offer.defaultModel, 'gemini-3.8-flash-high');
+  assert.equal(offer.webSearchModel, 'gemini-3.5-flash-lite');
 });

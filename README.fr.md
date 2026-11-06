@@ -18,7 +18,7 @@ Connectez-vous avec Google, choisissez un modèle Gemini, et votre agent cherche
 ## Fonctionnalités
 
 - 🔐 **Connexion Google (OAuth)** : un clic dans les réglages ou `/agy login`. Aucune clé API à copier.
-- 🤖 **Vos modèles Gemini, détectés automatiquement** : le sélecteur affiche exactement les modèles Gemini inclus dans votre abonnement Antigravity (par exemple Gemini 3.8 Flash avec réflexion low / medium / high), lus sur votre compte à la connexion.
+- 🤖 **Vos modèles Antigravity, tels que Google les liste** : le sélecteur affiche exactement les modèles que Google propose à votre compte (Gemini, et Claude ou GPT-OSS si votre forfait les inclut), avec les noms de Google, lus sur votre compte à la connexion.
 - 👥 **Plusieurs comptes Google** : ajouter, changer, retirer, et voir le quota restant de chacun avec son heure de remise à zéro.
 - 🖼️ **Pièces jointes multimodales** : images, audio, vidéo et PDF joints au message partent tels quels vers Gemini.
 - 🔎 **Outil `agy_web_search`** : recherche Google avec sources, utilisable par tous les agents.
@@ -60,9 +60,9 @@ dsh plugin --profile desktop remove gemini-dsh
 
 ## Utilisation
 
-1. Ouvrez **Réglages › Antigravity (Gemini)** et cliquez sur **Sign in with Google** (l'interface est en anglais) (ou tapez `/agy login`).
+1. Ouvrez **Réglages › Antigravity** et cliquez sur **Sign in with Google** (l'interface est en anglais) (ou tapez `/agy login`).
 2. Validez la connexion dans votre navigateur.
-3. Choisissez un modèle **Gemini (Antigravity)** dans le sélecteur et discutez.
+3. Choisissez un modèle **Antigravity** dans le sélecteur et discutez.
 
 ### Commande `/agy`
 

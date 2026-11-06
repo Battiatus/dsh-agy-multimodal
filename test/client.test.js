@@ -38,7 +38,7 @@ test('client.js s\'enregistre sous le nom du paquet et ajoute sa section de rég
   };
   plugin.apply(ctx);
   assert.equal(section.options.id, 'agy-multimodal');
-  assert.equal(section.options.label, 'Antigravity (Gemini)');
+  assert.equal(section.options.label, 'Antigravity');
   assert.equal(appended.length, 1);
 });
 

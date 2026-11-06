@@ -24,7 +24,7 @@ Sign in with Google, pick a Gemini model, and let your agent search the web and 
 ## Features
 
 - 🔐 **Google sign-in (OAuth)**: one click from the settings screen or `/agy login`. No API key to copy.
-- 🤖 **Your Gemini models, detected automatically**: the picker shows exactly the Gemini models your Antigravity subscription includes (for example Gemini 3.8 Flash with low / medium / high reasoning), read from your account at sign-in.
+- 🤖 **Your Antigravity models, as Google lists them**: the picker shows exactly the models Google offers your account (Gemini, and Claude or GPT-OSS when your plan includes them), with Google's own names, read from your account at sign-in.
 - 👥 **Several Google accounts**: add, switch and remove accounts, and see the remaining quota of each one, with its reset time.
 - 🖼️ **Multimodal attachments**: images, audio, video and PDF attached to a message go straight to Gemini.
 - 🔎 **`agy_web_search` tool**: Google Search grounding with sources, usable by any agent.
@@ -66,9 +66,9 @@ dsh plugin --profile desktop remove gemini-dsh
 
 ## Usage
 
-1. Open **Settings › Antigravity (Gemini)** and click **Sign in with Google** (or type `/agy login`).
+1. Open **Settings › Antigravity** and click **Sign in with Google** (or type `/agy login`).
 2. Approve the sign-in in your browser.
-3. Pick a **Gemini (Antigravity)** model in the model picker and start chatting.
+3. Pick an **Antigravity** model in the model picker and start chatting.
 
 ### `/agy` command
 

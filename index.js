@@ -3,14 +3,13 @@
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { Agy, DEFAULT_ACCOUNT_PATH, MAX_REQUEST_BYTES, mediaType, sourcesOf, sseEvents, textOf, wireOf } from './lib/agy.js';
+import { Agy, DEFAULT_ACCOUNT_PATH, MAX_REQUEST_BYTES, mediaType, sourcesOf, sseEvents, textOf } from './lib/agy.js';
 import { failureOf, toChunks, toRequest } from './lib/gemini.js';
 
 export const name = 'agy-multimodal';
 export const inject = ['llm', 'attachments'];
 
 const PROVIDER = 'agy-mm'; // route propre : google-antigravity, google et agy sont déjà pris par d'autres plugins
-const TOOL_MODEL = 'gemini-3.8-flash'; // préféré pour les outils, sinon le premier modèle du compte
 const SETTINGS_PATH = join(dirname(DEFAULT_ACCOUNT_PATH), 'settings.json');
 const QUOTA_TTL_MS = 30_000; // évite de solliciter Google à chaque ouverture de l'écran
 const MODELS_TTL_MS = 5 * 60_000; // le sélecteur de DSH relit souvent la liste
@@ -62,19 +61,21 @@ export function apply(ctx) {
   const agy = new Agy();
   let settings = loadSettings();
 
-  // Modèles du compte actif, relus au plus toutes les 5 min ; sans compte ou hors ligne : la dernière liste connue
-  let catalog = { at: 0, list: [] };
-  const models = async () => {
-    if (Date.now() - catalog.at < MODELS_TTL_MS) return catalog.list;
+  // Ce que Google propose au compte actif, relu au plus toutes les 5 min ; sans compte ou hors ligne : la dernière réponse connue
+  const NONE = { models: [] };
+  let catalog = { at: 0, value: NONE };
+  const offer = async () => {
+    if (Date.now() - catalog.at < MODELS_TTL_MS) return catalog.value;
     try {
-      catalog = { at: Date.now(), list: await agy.models() };
+      catalog = { at: Date.now(), value: await agy.models() };
     } catch {
       catalog.at = Date.now() - MODELS_TTL_MS + 30_000; // réessai dans 30 s
     }
-    return catalog.list;
+    return catalog.value;
   };
+  const models = async () => (await offer()).models;
   const modelsChanged = () => {
-    catalog = { at: 0, list: [] };
+    catalog = { at: 0, value: NONE };
     ctx.emit('llm/adapters-updated'); // le sélecteur de modèles de DSH relit la liste
   };
   const findModel = async (id) => {
@@ -83,28 +84,27 @@ export function apply(ctx) {
     await agy.credentials(); // sans compte : l'erreur « no Antigravity account » plutôt qu'un modèle inconnu
     throw Object.assign(new Error(`unknown model: ${id}`), { failure: { message: `unknown model: ${id}`, code: 'INVALID_MODEL' } });
   };
-  const toolModel = async () => {
-    const list = await models();
-    const m = list.find((x) => x.id === TOOL_MODEL) ?? list[0];
-    if (m) return wireOf(m, 'medium');
+  // Modèle désigné par Google pour la tâche : `webSearchModel` pour la recherche, `defaultModel` (celui de l'agent) sinon
+  const toolModel = async (kind) => {
+    const id = (await offer())[kind];
+    if (id) return id;
     await agy.credentials();
-    throw new Error('no Gemini model available on this Antigravity account');
+    throw new Error('Google offers no model for this task on this Antigravity account');
   };
 
   ctx.llm.registerAdapter([PROVIDER], {
-    providerInfo: (provider) => ({ id: provider, name: 'Gemini (Antigravity)' }),
+    providerInfo: (provider) => ({ id: provider, name: 'Antigravity' }),
     providerRetryPolicy: () => undefined,
     imageRequestPricing: () => undefined,
     imageRequestTarget: (_p, _m, image) => ({ width: image.width, height: image.height, maxBytes: image.bytes }),
     listModels: async (provider) => (settings.gemini ? await models() : [])
       .filter((m) => !settings.hiddenModels.includes(m.id))
-      .map(({ id, name }) => ({ provider, id, name, inputModalities: ['text', 'image'] })),
+      .map(({ id, name, images }) => ({ provider, id, name, inputModalities: images ? ['text', 'image'] : ['text'] })),
     async resolveModel(provider, model) {
       const m = await findModel(model);
       return {
-        provider, id: m.id, name: m.name, inputModalities: ['text', 'image'],
+        provider, id: m.id, name: m.name, inputModalities: m.images ? ['text', 'image'] : ['text'],
         context: { contextWindow: m.limit.context }, defaultMaxTokens: m.limit.output,
-        ...(m.efforts.length ? { reasoning: { efforts: m.efforts.map((id) => ({ id, name: id })), defaultEffort: 'medium' } } : {}),
       };
     },
     async prepareCall(provider, model, signal) {
@@ -112,11 +112,11 @@ export function apply(ctx) {
     },
     async *stream(options) {
       if (!settings.gemini) {
-        yield { type: 'finish', reason: { kind: 'error', failure: { message: 'Gemini models are turned off in Settings › Antigravity (Gemini)', code: 'DISABLED' } } };
+        yield { type: 'finish', reason: { kind: 'error', failure: { message: 'Antigravity models are turned off in Settings › Antigravity', code: 'DISABLED' } } };
         return;
       }
       try {
-        const wire = wireOf(await findModel(options.model), options.reasoningEffort);
+        const wire = (await findModel(options.model)).id;
         const readImage = async (ref) => {
           const stored = await ctx.attachments.readImage(ref, options.signal);
           return { data: stored.data, mediaType: stored.ref.mediaType };
@@ -143,7 +143,7 @@ export function apply(ctx) {
         render: (_args, value) => [{ type: 'text', text: [value.text, ...value.sources.map((s) => `- ${s.title} : ${s.uri}`)].join('\n') }],
       },
       async execute({ query }, exec) {
-        const reply = await agy.call(await toolModel(), { contents: [{ role: 'user', parts: [{ text: query }] }], tools: [{ googleSearch: {} }] }, { signal: exec.signal });
+        const reply = await agy.call(await toolModel('webSearchModel'), { contents: [{ role: 'user', parts: [{ text: query }] }], tools: [{ googleSearch: {} }] }, { signal: exec.signal });
         return { text: textOf(reply), sources: sourcesOf(reply) };
       },
       isConcurrencySafe: () => true,
@@ -159,7 +159,7 @@ export function apply(ctx) {
       async execute({ path, prompt }, exec) {
         const mimeType = mediaType(path);
         const data = await readWorkspaceFile(fs, exec, path);
-        const reply = await agy.call(await toolModel(), { contents: [{ role: 'user', parts: [
+        const reply = await agy.call(await toolModel('defaultModel'), { contents: [{ role: 'user', parts: [
           { inlineData: { mimeType, data: Buffer.from(data).toString('base64') } }, { text: prompt }] }] }, { signal: exec.signal });
         return { text: textOf(reply) };
       },
@@ -221,8 +221,8 @@ export function apply(ctx) {
       const hit = quotas.get(String(email));
       if (hit && force !== true && Date.now() - hit.at < QUOTA_TTL_MS) return hit.value;
       const { gemini, models } = await agy.quota(String(email));
-      // seuls les modèles proposés par ce plugin (le compte en liste une vingtaine, dont des modèles internes)
-      const offered = new Set((await models()).flatMap((m) => m.ids));
+      // seuls les modèles du sélecteur (le compte en liste une vingtaine, dont des modèles internes)
+      const offered = new Set((await models()).map((m) => m.id));
       const value = { gemini, models: models.filter((m) => offered.has(m.modelId)) };
       quotas.set(String(email), { at: Date.now(), value });
       return value;
@@ -247,7 +247,7 @@ export function apply(ctx) {
   ctx.inject(['commands'], (commandCtx) => {
     commandCtx.commands.register({
       name: 'agy',
-      description: 'Google Antigravity accounts for Gemini models (/agy login | status | use <email> | logout)',
+      description: 'Google Antigravity accounts (/agy login | status | use <email> | logout)',
       input: { hint: '[login|status|use <email>|logout]' },
       async handler({ rawInput, signal }) {
         const [action = 'status', email] = rawInput.trim().split(/\s+/).filter(Boolean);
@@ -255,7 +255,7 @@ export function apply(ctx) {
           if (action === 'login') {
             const { email: added } = await agy.login({ signal });
             modelsChanged();
-            return { kind: 'success', text: `Connected (${added}). Pick a "Gemini (Antigravity)" model.` };
+            return { kind: 'success', text: `Connected (${added}). Pick an "Antigravity" model.` };
           }
           if (action === 'use' && email) {
             await agy.use(email);

@@ -35,10 +35,10 @@ test('toRequest : système, tours fusionnés, appels rejoués avec leur signatur
   assert.deepEqual(request.contents.map((c) => c.role), ['user', 'model', 'user']);
   assert.deepEqual(request.contents[1].parts, [
     { text: 'je cherche', thought: true, thoughtSignature: 'sigR' },
-    { functionCall: { name: 'clock', args: { tz: 'UTC' } }, thoughtSignature: 'sigA' },
-    { functionCall: { name: 'web_search', args: {} }, thoughtSignature: SKIP_THOUGHT_SIGNATURE },
+    { functionCall: { id: 'c1', name: 'clock', args: { tz: 'UTC' } }, thoughtSignature: 'sigA' },
+    { functionCall: { id: 'c2', name: 'web_search', args: {} }, thoughtSignature: SKIP_THOUGHT_SIGNATURE },
   ]);
-  assert.deepEqual(request.contents[2].parts.map((p) => p.functionResponse.name), ['clock', 'web_search']);
+  assert.deepEqual(request.contents[2].parts.map((p) => [p.functionResponse.id, p.functionResponse.name]), [['c1', 'clock'], ['c2', 'web_search']]);
   // web_search reste un outil déclaré (la bibliothèque l'aurait remplacé par googleSearch)
   assert.equal(request.tools[0].functionDeclarations[0].name, 'web_search');
   assert.equal(request.tools[0].functionDeclarations[0].parameters.type, 'OBJECT');

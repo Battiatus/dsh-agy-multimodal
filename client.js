@@ -1,4 +1,4 @@
-// Écran Réglages › Antigravity (Gemini) : comptes Google, quotas, accès.
+// Écran Réglages › Antigravity : comptes Google, quotas, accès.
 // DSH charge ce fichier tel quel dans le navigateur (script classique concaténé) : ni import/export ni JSX,
 // tout vit dans la fabrique enregistrée auprès de __ModuleLoader__, dont l'id doit égaler le nom du paquet.
 window.__ModuleLoader__.load({
@@ -111,7 +111,7 @@ window.__ModuleLoader__.load({
           h(Quota, { call, email: a.email, refresh })))),
 
         h('h3', null, 'Access'),
-        h(Switch, { label: 'Gemini models in the DSH model picker', checked: settings.gemini, onChange: (v) => set({ gemini: v }) }),
+        h(Switch, { label: 'Antigravity models in the DSH model picker', checked: settings.gemini, onChange: (v) => set({ gemini: v }) }),
         h(Switch, { label: 'Web search (agy_web_search tool)', checked: settings.web, onChange: (v) => set({ web: v }) }),
         h(Switch, { label: 'Image, audio, video and PDF analysis (agy_media tool)', checked: settings.media, onChange: (v) => set({ media: v }) }),
         h('p', { className: 'agymm-muted' }, 'Models shown in the picker'),
@@ -133,7 +133,7 @@ window.__ModuleLoader__.load({
         };
         ctx.effect(() => installStyles(), 'agy-multimodal: styles');
         ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register(
-          { name: 'settings.section', id: 'agy-multimodal', order: 35, label: 'Antigravity (Gemini)' },
+          { name: 'settings.section', id: 'agy-multimodal', order: 35, label: 'Antigravity' },
           () => h(Section, { call }))), 'agy-multimodal: settings section');
       },
     };
