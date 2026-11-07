@@ -102,7 +102,7 @@ On your machine only, in `~/.dsh/agy-multimodal/accounts.json` (permissions `060
 Sign-in listens on `127.0.0.1:51121`, the port Google requires for this client, on the machine running DSH. If your browser is on another device, or another Antigravity tool holds that port, copy the address of the page Google sent you to and paste it in **Settings › Antigravity** (or run `/agy login <address>`).
 
 **Settings show "fetch failed", a certificate error or no model (often on Windows or at work).**
-The plugin trusts your system's certificates (Windows store, macOS keychain, Linux CA bundle), so an antivirus or company proxy that inspects HTTPS is accepted like in your browser. The error now names the real cause: for DNS or a blocked connection, check your VPN or firewall; behind a proxy, set `HTTPS_PROXY` (for example `http://proxy.company:8080`) before starting DeepSeek Harness.
+If another tool's `hosts` entry or DNS blocker sends `cloudcode-pa.googleapis.com` to `127.0.0.1`, the plugin asks your DNS servers for Google's real address for those Antigravity hosts only, so you don't have to change your system. The plugin also trusts your system's certificates (Windows store, macOS keychain, Linux CA bundle), so an antivirus or company proxy that inspects HTTPS is accepted like in your browser. The error now names the real cause: for DNS or a blocked connection, check your VPN or firewall; behind a proxy, set `HTTPS_PROXY` (for example `http://proxy.company:8080`) before starting DeepSeek Harness.
 
 **I get a 400 error about tool schemas.**
 Update the plugin. Recent versions convert multi-type and tuple schemas into a form Gemini accepts.

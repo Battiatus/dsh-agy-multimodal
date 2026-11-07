@@ -121,3 +121,16 @@ test('les erreurs réseau nomment la cause, et les certificats du système sont 
   assert.match(networkCause(redirected), /hosts file/);
   assert.equal(trustSystemCertificates(), true); // Node 24 de DSH, comme celui des tests
 });
+
+test('hôtes Antigravity redirigés sur 127.0.0.1 par le fichier hosts : la vraie adresse est demandée au DNS', async () => {
+  const { redirectAwareLookup } = await import('../lib/agy.js');
+  const hosts = { 'cloudcode-pa.googleapis.com': '127.0.0.1', 'daily-cloudcode-pa.googleapis.com': '127.0.0.1', 'localhost': '127.0.0.1', 'example.com': '93.184.215.14' };
+  const base = (h, o, cb) => (o.all ? cb(null, [{ address: hosts[h], family: 4 }]) : cb(null, hosts[h], 4));
+  const resolver = { resolve4: (_h, cb) => cb(null, ['142.250.1.95']), resolve6: (_h, cb) => cb(new Error('no AAAA')) };
+  const lookup = redirectAwareLookup(base, resolver);
+  const ask = (h, o) => new Promise((resolve) => lookup(h, o, (e, a, f) => resolve(e ? e.message : o?.all ? a : [a, f])));
+  assert.deepEqual(await ask('cloudcode-pa.googleapis.com', {}), ['142.250.1.95', 4]);
+  assert.deepEqual(await ask('daily-cloudcode-pa.googleapis.com', { all: true }), [{ address: '142.250.1.95', family: 4 }]);
+  assert.deepEqual(await ask('localhost', {}), ['127.0.0.1', 4]); // autre nom : le fichier hosts s'applique
+  assert.deepEqual(await ask('example.com', {}), ['93.184.215.14', 4]);
+});
