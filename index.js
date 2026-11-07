@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { Agy, CALLBACK_PORT, DEFAULT_ACCOUNT_PATH, MAX_REQUEST_BYTES, mediaType, openBrowser, sourcesOf, sseEvents, textOf } from './lib/agy.js';
+import { Agy, CALLBACK_PORT, DEFAULT_ACCOUNT_PATH, MAX_REQUEST_BYTES, mediaType, openBrowser, sourcesOf, sseEvents, textOf, wireModel } from './lib/agy.js';
 import { failureOf, toChunks, toRequest } from './lib/gemini.js';
 
 export const name = 'agy-multimodal';
@@ -13,12 +13,13 @@ const PROVIDER = 'agy-mm'; // route propre : google-antigravity, google et agy s
 const SETTINGS_PATH = join(dirname(DEFAULT_ACCOUNT_PATH), 'settings.json');
 const QUOTA_TTL_MS = 30_000; // évite de solliciter Google à chaque ouverture de l'écran
 const MODELS_TTL_MS = 5 * 60_000; // le sélecteur de DSH relit souvent la liste
+const EFFORT_NAMES = { minimal: 'Minimal', low: 'Low', medium: 'Medium', high: 'High' };
 
 /** Réglages d'accès validés : interrupteurs booléens et ids de modèles masqués. */
 export function cleanSettings(value = {}) {
   const flag = (v) => v !== false;
   return {
-    gemini: flag(value.gemini), web: flag(value.web), media: flag(value.media),
+    gemini: flag(value.gemini), web: flag(value.web), media: flag(value.media), images: flag(value.images),
     hiddenModels: Array.isArray(value.hiddenModels) ? [...new Set(value.hiddenModels.filter((id) => typeof id === 'string' && id.length <= 200))] : [],
   };
 }
@@ -80,7 +81,7 @@ export function apply(ctx) {
     ctx.emit('llm/adapters-updated'); // le sélecteur de modèles de DSH relit la liste
   };
   const findModel = async (id) => {
-    const m = (await models()).find((x) => x.id === id);
+    const m = (await models()).find((x) => x.id === id || x.wire === id || x.efforts.some((e) => e.wire === id));
     if (m) return m;
     await agy.credentials(); // sans compte : l'erreur « no Antigravity account » plutôt qu'un modèle inconnu
     throw Object.assign(new Error(`unknown model: ${id}`), { failure: { message: `unknown model: ${id}`, code: 'INVALID_MODEL' } });
@@ -104,8 +105,11 @@ export function apply(ctx) {
     async resolveModel(provider, model) {
       const m = await findModel(model);
       return {
-        provider, id: m.id, name: m.name, inputModalities: m.images ? ['text', 'image'] : ['text'],
-        context: { contextWindow: m.limit.context }, defaultMaxTokens: m.limit.output,
+        provider, id: model, name: m.name, inputModalities: m.images ? ['text', 'image'] : ['text'],
+        ...(m.limit.context ? { context: { contextWindow: m.limit.context } } : {}),
+        ...(m.limit.output ? { defaultMaxTokens: m.limit.output } : {}),
+        // niveaux de raisonnement que Google propose pour ce modèle : DSH les montre dans son sélecteur
+        ...(m.efforts.length ? { reasoning: { efforts: m.efforts.map((e) => ({ id: e.id, name: EFFORT_NAMES[e.id] })), defaultEffort: m.defaultEffort } } : {}),
       };
     },
     async prepareCall(provider, model, signal) {
@@ -117,12 +121,14 @@ export function apply(ctx) {
         return;
       }
       try {
-        const wire = (await findModel(options.model)).id;
+        const m = await findModel(options.model);
+        // un ancien id à niveau (gemini-3.8-flash-high) garde son niveau quand DSH n'en demande pas
+        const wire = wireModel(m, options.reasoningEffort ?? m.efforts.find((e) => e.wire === options.model)?.id);
         const readImage = async (ref) => {
           const stored = await ctx.attachments.readImage(ref, options.signal);
           return { data: stored.data, mediaType: stored.ref.mediaType };
         };
-        const response = await agy.call(wire, await toRequest(options, wire, readImage), { stream: true, signal: options.signal });
+        const response = await agy.call(wire, await toRequest(options, wire, readImage), { stream: true, signal: options.signal, sessionKey: options.sessionId });
         yield* toChunks(sseEvents(response.body), options);
       } catch (error) {
         yield options.signal?.aborted
@@ -163,6 +169,43 @@ export function apply(ctx) {
         const reply = await agy.call(await toolModel('defaultModel'), { contents: [{ role: 'user', parts: [
           { inlineData: { mimeType, data: Buffer.from(data).toString('base64') } }, { text: prompt }] }] }, { signal: exec.signal });
         return { text: textOf(reply) };
+      },
+      isConcurrencySafe: () => true,
+    }),
+    images: (fs) => ({
+      name: 'agy_image',
+      description: 'Generates an image from a description, or edits images from the working folder (up to 5, as references), with the image model Google offers this Antigravity account. The images are added to the conversation.',
+      parameters: { type: 'object', properties: {
+        prompt: { type: 'string', minLength: 1, maxLength: 16384, description: 'what to create, or how to change the reference images' },
+        images: { type: 'array', maxItems: 5, items: { type: 'string', minLength: 1, maxLength: 4096 }, description: 'paths of images in the working folder to edit or use as references' },
+      }, required: ['prompt'], additionalProperties: false },
+      output: {
+        schema: { type: 'object', properties: { text: { type: 'string' }, images: { type: 'array', items: { type: 'object' } } } },
+        render: (_args, value) => [
+          { type: 'text', text: value.text || `Created ${value.images.length} image(s).` },
+          ...value.images.map((attachment) => ({ type: 'image', attachment })),
+        ],
+      },
+      async execute({ prompt, images = [] }, exec) {
+        const references = [];
+        for (const path of images) {
+          const mimeType = mediaType(path);
+          if (!mimeType.startsWith('image/')) throw new Error(`${path}: not an image`);
+          references.push({ inlineData: { mimeType, data: Buffer.from(await readWorkspaceFile(fs, exec, path)).toString('base64') } });
+        }
+        const reply = await agy.call(await toolModel('imageModel'), {
+          contents: [{ role: 'user', parts: [{ text: prompt }, ...references] }],
+          generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+        }, { signal: exec.signal });
+        const parts = (reply.response ?? reply).candidates?.[0]?.content?.parts ?? [];
+        const saved = [];
+        for (const [i, part] of parts.filter((x) => x.inlineData?.mimeType?.startsWith('image/')).entries()) {
+          const image = { data: new Uint8Array(Buffer.from(part.inlineData.data, 'base64')), mediaType: part.inlineData.mimeType, name: `agy-image-${i + 1}` };
+          await ctx.attachments.validateImage?.(image);
+          saved.push(await ctx.attachments.saveImage(image));
+        }
+        if (saved.length === 0) throw new Error(`no image returned${textOf(reply) ? `: ${textOf(reply).slice(0, 300)}` : ' (the request may have been refused)'}`);
+        return { text: textOf(reply), images: saved };
       },
       isConcurrencySafe: () => true,
     }),
@@ -224,9 +267,9 @@ export function apply(ctx) {
       const hit = quotas.get(String(email));
       if (hit && force !== true && Date.now() - hit.at < QUOTA_TTL_MS) return hit.value;
       const quota = await agy.quota(String(email));
-      // seuls les modèles du sélecteur (le compte en liste une vingtaine, dont des modèles internes)
-      const offered = new Set((await models()).map((m) => m.id));
-      const value = { gemini: quota.gemini, models: quota.models.filter((m) => offered.has(m.modelId)) };
+      // repli par modèle : seuls ceux du sélecteur (le compte en liste une vingtaine, dont des modèles internes)
+      const offered = new Set((await models()).flatMap((m) => [m.wire, ...m.efforts.map((e) => e.wire)]));
+      const value = { pools: quota.pools, models: (quota.models ?? []).filter((m) => offered.has(m.modelId)) };
       quotas.set(String(email), { at: Date.now(), value });
       return value;
     },

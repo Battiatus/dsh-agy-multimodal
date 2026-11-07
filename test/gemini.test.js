@@ -93,13 +93,13 @@ test('toChunks : raisonnement, texte, appel d\'outil, usage et signatures à rej
     ev([{ text: 'hmm', thought: true, thoughtSignature: 'sigR' }]),
     ev([{ text: 'Bon' }, { text: 'jour' }]),
     ev([{ functionCall: { name: 'f', args: { a: 1 } }, thoughtSignature: 'sigF' }], { finishReason: 'STOP' }),
-    { response: { usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 4, thoughtsTokenCount: 2, totalTokenCount: 16 } } },
+    { response: { usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 4, thoughtsTokenCount: 2, totalTokenCount: 16, cachedContentTokenCount: 8 } } },
   ]);
   const ends = chunks.filter((c) => c.type === 'block-end').map((c) => c.block);
   assert.deepEqual(ends.map((b) => b.type), ['reasoning', 'text', 'tool-call']);
   assert.equal(ends[1].text, 'Bonjour');
   assert.equal(ends[2].arguments, '{"a":1}');
-  assert.deepEqual(chunks.find((c) => c.type === 'usage').usage, { inputTokens: 10, outputTokens: 6, totalTokens: 16 });
+  assert.deepEqual(chunks.find((c) => c.type === 'usage').usage, { inputTokens: 10, outputTokens: 6, totalTokens: 16, cacheReadTokens: 8 });
   const finish = chunks.at(-1);
   assert.equal(finish.reason.kind, 'tool-calls');
   assert.deepEqual(finish.replayState, { ...P, kinds: ['reasoning', 'text', 'tool-call'], signatures: ['sigR', null, 'sigF'] });

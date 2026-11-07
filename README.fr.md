@@ -19,7 +19,10 @@ Connectez-vous avec Google, choisissez un modèle Gemini, et votre agent cherche
 
 - 🔐 **Connexion Google (OAuth)** : un clic dans les réglages ou `/agy login`. Aucune clé API à copier.
 - 🤖 **Vos modèles Antigravity, tels que Google les liste** : le sélecteur affiche exactement les modèles que Google propose à votre compte (Gemini, et Claude ou GPT-OSS si votre forfait les inclut), avec les noms de Google, lus sur votre compte à la connexion.
-- 👥 **Plusieurs comptes Google** : ajouter, changer, retirer, et voir le quota restant de chacun avec son heure de remise à zéro.
+- 🧠 **Niveaux de raisonnement** : une entrée par famille de modèles (Gemini 3.8 Flash, Gemini 4 Argon, Claude…) avec Low / Medium / High dans le sélecteur de raisonnement de DSH. Le niveau arrive vraiment chez Google (budget de réflexion), et le raisonnement du modèle s'affiche dans la conversation.
+- 👥 **Plusieurs comptes Google** : ajouter, changer, retirer, et voir pour chacun les limites de 5 h et de la semaine par groupe de modèles (Gemini, Claude et GPT, Argon), comme dans Antigravity.
+- 🎨 **Outil `agy_image`** : l'agent crée des images, ou retouche jusqu'à 5 images du dossier de travail, avec le modèle d'image que Google propose à votre compte (Nano Banana).
+- 🔁 **Appels robustes** : un jeton refusé est rafraîchi et la requête rejouée, un serveur saturé est réessayé, et un quota épuisé indique quand il se recharge.
 - 🖼️ **Pièces jointes multimodales** : images, audio, vidéo et PDF joints au message partent tels quels vers Gemini.
 - 🔎 **Outil `agy_web_search`** : recherche Google avec sources, utilisable par tous les agents.
 - 🎬 **Outil `agy_media`** : l'agent analyse un fichier image, audio, vidéo ou PDF du dossier de travail (~36 Mo max).
@@ -83,6 +86,7 @@ dsh plugin --profile desktop remove gemini-dsh
 | --- | --- |
 | `agy_web_search` | Cherche sur Google et répond avec ses sources |
 | `agy_media` | Décrit, transcrit ou analyse un fichier image, audio, vidéo ou PDF du dossier de travail |
+| `agy_image` | Crée une image à partir d'une description, ou retouche des images du dossier de travail |
 
 ## FAQ
 

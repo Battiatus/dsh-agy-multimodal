@@ -35,13 +35,13 @@ function fakeHost() {
   return host;
 }
 
-test('le plugin enregistre son adaptateur, ses deux outils, /agy et sa route', async () => {
+test('le plugin enregistre son adaptateur, ses trois outils, /agy et sa route', async () => {
   const host = fakeHost();
   const adapter = host.adapters['agy-mm'];
   // sans compte, aucun modèle : la liste vient du compte connecté (fetchAvailableModels)
   assert.deepEqual(await adapter.listModels('agy-mm'), []);
   await assert.rejects(adapter.resolveModel('agy-mm', 'gemini-3.8-flash'), /no Antigravity account/);
-  assert.deepEqual(Object.keys(host.tools).sort(), ['agy_media', 'agy_web_search']);
+  assert.deepEqual(Object.keys(host.tools).sort(), ['agy_image', 'agy_media', 'agy_web_search']);
   assert.equal((await host.commands.agy.handler({ rawInput: '' })).text, 'No account: run /agy login');
   assert.ok(host.routes['/api/agy-multimodal']);
 });
@@ -91,14 +91,14 @@ test('les interrupteurs d\'accès retirent outils et modèles, et sont enregistr
   const host = fakeHost();
   const adapter = host.adapters['agy-mm'];
   await host.rpc('settings', { web: false, hiddenModels: ['gemini-4-argon', 'inventé'] });
-  assert.deepEqual(Object.keys(host.tools), ['agy_media']);
+  assert.deepEqual(Object.keys(host.tools).sort(), ['agy_image', 'agy_media']);
   assert.ok(!(await adapter.listModels('agy-mm')).some((m) => m.id === 'gemini-4-argon'));
   assert.deepEqual(host.emitted, ['llm/adapters-updated']);
   const saved = JSON.parse(await readFile(join(process.env.HOME, '.dsh/agy-multimodal/settings.json'), 'utf8'));
-  assert.deepEqual(saved, { gemini: true, web: false, media: true, hiddenModels: ['gemini-4-argon', 'inventé'] });
+  assert.deepEqual(saved, { gemini: true, web: false, media: true, images: true, hiddenModels: ['gemini-4-argon', 'inventé'] });
 
   await host.rpc('settings', { gemini: false, web: true });
-  assert.deepEqual(Object.keys(host.tools).sort(), ['agy_media', 'agy_web_search']);
+  assert.deepEqual(Object.keys(host.tools).sort(), ['agy_image', 'agy_media', 'agy_web_search']);
   assert.deepEqual(await adapter.listModels('agy-mm'), []);
   const chunks = [];
   for await (const chunk of adapter.stream({ provider: 'agy-mm', model: 'gemini-3.8-flash', messages: [] })) chunks.push(chunk);

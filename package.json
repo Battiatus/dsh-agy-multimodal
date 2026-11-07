@@ -1,6 +1,6 @@
 {
   "name": "gemini-dsh",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "description": "Gemini models from your Google Antigravity subscription inside DeepSeek Harness: Google OAuth, multi-account quotas, Google Search grounding, and image, audio, video and PDF understanding.",
   "keywords": [
@@ -38,7 +38,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "bench": "node bench/run.js",
+    "bench:check": "node bench/check.js"
   },
   "dependencies": {
     "@cortexkit/antigravity-auth-core": "3.0.30"

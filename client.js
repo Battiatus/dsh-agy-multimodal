@@ -104,6 +104,7 @@ window.__ModuleLoader__.load({
     function untilReset(iso) {
       const min = Math.round((Date.parse(iso) - Date.now()) / 60_000);
       if (!(min >= 0)) return '';
+      if (min >= 1440) return `resets in ${Math.floor(min / 1440)} d ${Math.floor((min % 1440) / 60)} h`; // fenêtre hebdomadaire
       return min < 60 ? `resets in ${min} min` : `resets in ${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`;
     }
     /** Ligne de réglage au format DSH : titre, description, interrupteur à droite (le Switch n'affiche pas son label). */
@@ -124,7 +125,18 @@ window.__ModuleLoader__.load({
       }, [call, email, refresh]);
       if (state.error) return h('p', { className: 'agymm-small agymm-error' }, `Quota unavailable: ${state.error}`);
       if (!state.quota) return h('p', { className: 'agymm-small agymm-muted' }, 'Checking quota…');
-      const rows = state.quota.models;
+      const pools = state.quota.pools ?? [];
+      if (pools.length > 0) {
+        // les groupes et fenêtres de Google (Gemini, Claude et GPT, Argon ; 5 h et semaine), comme dans Antigravity
+        const WINDOW = { '5h': '5-hour limit', weekly: 'Weekly limit' };
+        return h('div', { className: 'agymm-quota' }, ...pools.flatMap((pool) => pool.windows.flatMap((w, i) => [
+          h('span', { key: `${pool.name}-${w.window}-n`, className: 'agymm-ellipsis', title: pool.description },
+            i === 0 ? h('strong', { style: { fontWeight: 500 } }, pool.name) : '', i === 0 ? ' · ' : '', WINDOW[w.window] ?? w.window),
+          h('div', { key: `${pool.name}-${w.window}-t`, className: 'agymm-track' }, h('i', { style: { width: `${pct(w.remainingFraction)}%`, background: tone(w.remainingFraction) } })),
+          h('span', { key: `${pool.name}-${w.window}-v`, className: 'agymm-muted' }, `${pct(w.remainingFraction)}%${w.resetTime && w.remainingFraction < 1 ? ` · ${untilReset(w.resetTime)}` : ''}`),
+        ])));
+      }
+      const rows = state.quota.models ?? [];
       if (rows.length === 0) return null;
       const low = rows.reduce((a, b) => (b.remainingFraction < a.remainingFraction ? b : a));
       const line = (m) => [
@@ -237,6 +249,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'agymm-settings' },
             setting({ title: 'Antigravity models', desc: 'Show the models of your plan in the model picker.', checked: settings.gemini, onChange: (v) => set({ gemini: v }) }),
             setting({ title: 'Google web search', desc: 'Agents can search the web with sources (agy_web_search tool).', checked: settings.web, onChange: (v) => set({ web: v }) }),
+            setting({ title: 'Image generation', desc: 'Agents can create and edit images with Google\'s image model (agy_image tool).', checked: settings.images, onChange: (v) => set({ images: v }) }),
             setting({ title: 'Media analysis', desc: 'Agents can read images, audio, video and PDF files from the workspace (agy_media tool).', checked: settings.media, onChange: (v) => set({ media: v }) }))),
 
         models.length > 0 && settings.gemini && h('section', null,

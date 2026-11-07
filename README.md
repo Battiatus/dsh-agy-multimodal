@@ -25,7 +25,10 @@ Sign in with Google, pick a Gemini model, and let your agent search the web and 
 
 - 🔐 **Google sign-in (OAuth)**: one click from the settings screen or `/agy login`. No API key to copy.
 - 🤖 **Your Antigravity models, as Google lists them**: the picker shows exactly the models Google offers your account (Gemini, and Claude or GPT-OSS when your plan includes them), with Google's own names, read from your account at sign-in.
-- 👥 **Several Google accounts**: add, switch and remove accounts, and see the remaining quota of each one, with its reset time.
+- 🧠 **Reasoning levels**: one entry per model family (Gemini 3.8 Flash, Gemini 4 Argon, Claude…) with Low / Medium / High in the DSH reasoning picker. The level really reaches Google (thinking budget), and the model's reasoning shows in the conversation.
+- 👥 **Several Google accounts**: add, switch and remove accounts, and see each one's 5-hour and weekly limits per model group (Gemini, Claude and GPT, Argon), as in Antigravity.
+- 🎨 **`agy_image` tool**: your agent creates images, or edits up to 5 images from the working folder, with the image model Google offers your account (Nano Banana).
+- 🔁 **Resilient calls**: a refused token is refreshed and the request replayed, a busy server is retried, and a used-up quota says when it resets.
 - 🖼️ **Multimodal attachments**: images, audio, video and PDF attached to a message go straight to Gemini.
 - 🔎 **`agy_web_search` tool**: Google Search grounding with sources, usable by any agent.
 - 🎬 **`agy_media` tool**: your agent can analyse an image, audio, video or PDF file from the working folder (up to ~36 MB).
@@ -89,6 +92,7 @@ dsh plugin --profile desktop remove gemini-dsh
 | --- | --- |
 | `agy_web_search` | Searches Google and answers with its sources |
 | `agy_media` | Describes, transcribes or analyses an image, audio, video or PDF file from the working folder |
+| `agy_image` | Creates an image from a description, or edits images from the working folder |
 
 ## FAQ
 

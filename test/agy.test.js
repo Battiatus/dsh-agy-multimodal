@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mediaType, offeredModels, sourcesOf, sseEvents, textOf } from '../lib/agy.js';
+import { mediaType, offeredModels, sourcesOf, sseEvents, textOf, wireModel } from '../lib/agy.js';
 
 test('textOf ignore le raisonnement et lit la réponse enveloppée', () => {
   const reply = { response: { candidates: [{ content: { parts: [
@@ -69,13 +69,16 @@ test('offeredModels reprend la liste du sélecteur de Google telle quelle, sans 
     defaultAgentModelId: 'gemini-3.8-flash-high',
     webSearchModelIds: ['gemini-3.5-flash-lite'],
   });
-  assert.deepEqual(offer.models.map((x) => [x.id, x.name, x.images]), [
-    ['gemini-3.8-flash-high', 'Gemini 3.8 Flash (High)', true],
-    ['gemini-3.8-flash-low', 'Gemini 3.8 Flash (Low)', true],
-    ['claude-sonnet-4-6', 'Claude Sonnet 4.6 (Thinking)', true],
-    ['gpt-oss-120b-medium', 'GPT-OSS 120B (Medium)', false],
+  // un modèle par famille, ses niveaux de raisonnement rangés du plus bas au plus haut
+  assert.deepEqual(offer.models.map((x) => [x.id, x.name, x.images, x.efforts.map((e) => e.id), x.defaultEffort]), [
+    ['gemini-3.8-flash', 'Gemini 3.8 Flash', true, ['low', 'high'], 'high'],
+    ['claude-sonnet-4-6', 'Claude Sonnet 4.6 (Thinking)', true, [], undefined],
+    ['gpt-oss-120b', 'GPT-OSS 120B', false, ['medium'], 'medium'],
   ]);
-  assert.equal(offer.models[2].limit.context, 250000);
+  assert.equal(offer.models[1].limit.context, 250000);
+  assert.equal(wireModel(offer.models[0], 'low'), 'gemini-3.8-flash-low');
+  assert.equal(wireModel(offer.models[0], 'medium'), 'gemini-3.8-flash-high'); // niveau inconnu : celui par défaut
+  assert.equal(wireModel(offer.models[1], undefined), 'claude-sonnet-4-6');
   assert.equal(offer.defaultModel, 'gemini-3.8-flash-high');
   assert.equal(offer.webSearchModel, 'gemini-3.5-flash-lite');
 });
@@ -133,4 +136,15 @@ test('hôtes Antigravity redirigés sur 127.0.0.1 par le fichier hosts : la vrai
   assert.deepEqual(await ask('daily-cloudcode-pa.googleapis.com', { all: true }), [{ address: '142.250.1.95', family: 4 }]);
   assert.deepEqual(await ask('localhost', {}), ['127.0.0.1', 4]); // autre nom : le fichier hosts s'applique
   assert.deepEqual(await ask('example.com', {}), ['93.184.215.14', 4]);
+});
+
+test('erreurs d\'appel : quota épuisé avec délai lisible, saturation à réessayer', async () => {
+  const { callFailure } = await import('../lib/agy.js');
+  const quota = callFailure(429, JSON.stringify({ error: { code: 429, message: 'Resource has been exhausted', status: 'RESOURCE_EXHAUSTED', details: [{ '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay: '5400s' }] } }));
+  assert.match(quota.message, /quota reached.*1 h 30/);
+  assert.equal(quota.retryable, false);
+  const busy = callFailure(429, JSON.stringify({ error: { message: 'No capacity available for model', details: [{ reason: 'MODEL_CAPACITY_EXHAUSTED' }] } }));
+  assert.equal(busy.retryable, true);
+  assert.equal(callFailure(503, 'unavailable').retryable, true);
+  assert.equal(callFailure(400, 'bad').message, 'Antigravity 400: bad');
 });
