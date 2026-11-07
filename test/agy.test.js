@@ -116,5 +116,8 @@ test('les erreurs réseau nomment la cause, et les certificats du système sont 
   assert.match(networkCause(cause('ENOTFOUND', 'getaddrinfo ENOTFOUND cloudcode-pa.googleapis.com')), /DNS/);
   assert.match(networkCause(cause('UNABLE_TO_GET_ISSUER_CERT_LOCALLY', 'unable to get local issuer certificate')), /NODE_EXTRA_CA_CERTS/);
   assert.match(networkCause(cause('ECONNRESET', 'socket hang up')), /HTTPS_PROXY/);
+  // Windows réel : cloudcode-pa.googleapis.com redirigé vers la machine (fichier hosts ou bloqueur DNS)
+  const redirected = Object.assign(new TypeError('fetch failed'), { cause: Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:443'), { code: 'ECONNREFUSED', address: '127.0.0.1' }) });
+  assert.match(networkCause(redirected), /hosts file/);
   assert.equal(trustSystemCertificates(), true); // Node 24 de DSH, comme celui des tests
 });
