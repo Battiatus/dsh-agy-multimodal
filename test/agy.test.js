@@ -79,3 +79,19 @@ test('offeredModels reprend la liste du sélecteur de Google telle quelle, sans 
   assert.equal(offer.defaultModel, 'gemini-3.8-flash-high');
   assert.equal(offer.webSearchModel, 'gemini-3.5-flash-lite');
 });
+
+test('connexion : lien Google tout de suite, adresse collée vérifiée, annulation', async () => {
+  const { mkdtemp } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const { Agy } = await import('../lib/agy.js');
+  const agy = new Agy(join(await mkdtemp(join(tmpdir(), 'agy-login-')), 'accounts.json'));
+  await assert.rejects(agy.finishLogin('http://localhost:51121/oauth-callback?code=c&state=s'), /no sign-in in progress/);
+  const { url, done } = await agy.beginLogin();
+  assert.match(url, /^https:\/\/accounts\.google\.com\//);
+  await assert.rejects(agy.finishLogin('http://localhost:51121/oauth-callback'), /no sign-in code/);
+  await assert.rejects(agy.finishLogin('http://localhost:51121/oauth-callback?code=c&state=other'), /another sign-in attempt/);
+  agy.cancelLogin();
+  await assert.rejects(done, /sign-in cancelled/);
+  await assert.rejects(agy.finishLogin('code=c'), /no sign-in in progress/);
+});

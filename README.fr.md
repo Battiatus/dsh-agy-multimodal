@@ -60,15 +60,18 @@ dsh plugin --profile desktop remove gemini-dsh
 
 ## Utilisation
 
-1. Ouvrez **Réglages › Antigravity** et cliquez sur **Sign in with Google** (l'interface est en anglais) (ou tapez `/agy login`).
-2. Validez la connexion dans votre navigateur.
+1. Ouvrez **Réglages › Antigravity** et cliquez sur **Sign in with Google** (l'interface est en anglais), ou tapez `/agy login`.
+2. Choisissez votre compte Google et autorisez l'accès dans la page qui s'ouvre. Si rien ne s'ouvre, cliquez sur **Open Google sign-in**.
 3. Choisissez un modèle **Antigravity** dans le sélecteur et discutez.
+
+**DSH utilisé depuis un autre appareil** (DSH web sur un serveur, un téléphone, un autre PC) : après validation, Google envoie votre navigateur sur une page `localhost:51121` qui ne charge pas. Copiez l'adresse complète de cette page et collez-la dans le champ sous **Open Google sign-in**, ou lancez `/agy login <adresse>`.
 
 ### Commande `/agy`
 
 | Commande | Effet |
 | --- | --- |
-| `/agy login` | Ajouter un compte Google |
+| `/agy login` | Ajouter un compte Google : affiche le lien de connexion |
+| `/agy login <adresse>` | Terminer une connexion faite depuis un autre appareil, avec l'adresse où Google vous a renvoyé |
 | `/agy status` | Lister les comptes, l'actif est marqué ● |
 | `/agy use <email>` | Changer de compte actif |
 | `/agy logout [email]` | Retirer un compte (l'actif par défaut) |
@@ -88,8 +91,8 @@ Non. Le plugin utilise la même connexion que Google Antigravity. Google a déj�
 **Où sont mes jetons ?**
 Uniquement sur votre machine, dans `~/.dsh/agy-multimodal/accounts.json` (droits `0600`), jamais affichés. Les réglages d'accès sont dans `settings.json` à côté.
 
-**La connexion échoue à cause d'un port.**
-La connexion écoute brièvement sur `127.0.0.1:51121`, le port imposé par Google pour ce client. Si un autre outil Antigravity l'occupe au même moment, `/agy login` le signale. Fermez cet outil et réessayez.
+**Rien ne se passe après la validation chez Google.**
+La connexion écoute sur `127.0.0.1:51121`, le port imposé par Google pour ce client, sur la machine qui fait tourner DSH. Si votre navigateur est sur un autre appareil, ou si un autre outil Antigravity occupe ce port, copiez l'adresse de la page où Google vous a renvoyé et collez-la dans **Réglages › Antigravity** (ou lancez `/agy login <adresse>`).
 
 **J'ai une erreur 400 sur les schémas d'outils.**
 Mettez le plugin à jour : les versions récentes convertissent les schémas multi-types et en tuple dans une forme que Gemini accepte.

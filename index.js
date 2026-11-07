@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { Agy, DEFAULT_ACCOUNT_PATH, MAX_REQUEST_BYTES, mediaType, sourcesOf, sseEvents, textOf } from './lib/agy.js';
+import { Agy, CALLBACK_PORT, DEFAULT_ACCOUNT_PATH, MAX_REQUEST_BYTES, mediaType, openBrowser, sourcesOf, sseEvents, textOf } from './lib/agy.js';
 import { failureOf, toChunks, toRequest } from './lib/gemini.js';
 
 export const name = 'agy-multimodal';
@@ -188,28 +188,29 @@ export function apply(ctx) {
     });
   });
 
-  // Connexion lancée depuis l'écran : la requête rend la main tout de suite, l'écran suit l'avancement par `status`
-  let login = { controller: null, error: null };
-  const startLogin = () => {
-    if (login.controller) return;
-    const controller = new AbortController();
-    login = { controller, error: null };
-    agy.login({ signal: controller.signal }).then(
-      () => { login = { controller: null, error: null }; modelsChanged(); },
-      (error) => { login = { controller: null, error: controller.signal.aborted ? null : error.message }; },
+  // Connexion Google partagée par l'écran et /agy : rend le lien tout de suite, l'écran suit l'avancement par `status`
+  let login = { url: null, error: null };
+  const startLogin = async () => {
+    const { url, done } = await agy.beginLogin();
+    login = { url, error: null };
+    done.then(
+      () => { if (login.url === url) login = { url: null, error: null }; modelsChanged(); },
+      (error) => { if (login.url === url) login = { url: null, error: error.message === 'sign-in cancelled' ? null : error.message }; },
     );
+    return url;
   };
 
   const quotas = new Map(); // email → { at, value }
   const methods = {
     status: async () => ({
       accounts: await agy.accounts(),
-      login: { pending: Boolean(login.controller), error: login.error },
+      login: { pending: Boolean(login.url), url: login.url, error: login.error },
       settings,
       models: (await models()).map(({ id, name }) => ({ id, name })),
     }),
-    login: async () => { startLogin(); return {}; },
-    'login.cancel': async () => { login.controller?.abort(); return {}; },
+    login: async () => ({ url: await startLogin() }),
+    'login.finish': async ({ address }) => ({ email: (await agy.finishLogin(String(address ?? ''))).email }),
+    'login.cancel': async () => { agy.cancelLogin(); return {}; },
     'account.use': async ({ email }) => { await agy.use(String(email)); modelsChanged(); return {}; },
     'account.remove': async ({ email }) => {
       await agy.remove(String(email));
@@ -220,10 +221,10 @@ export function apply(ctx) {
     quota: async ({ email, force }) => {
       const hit = quotas.get(String(email));
       if (hit && force !== true && Date.now() - hit.at < QUOTA_TTL_MS) return hit.value;
-      const { gemini, models } = await agy.quota(String(email));
+      const quota = await agy.quota(String(email));
       // seuls les modèles du sélecteur (le compte en liste une vingtaine, dont des modèles internes)
       const offered = new Set((await models()).map((m) => m.id));
-      const value = { gemini, models: models.filter((m) => offered.has(m.modelId)) };
+      const value = { gemini: quota.gemini, models: quota.models.filter((m) => offered.has(m.modelId)) };
       quotas.set(String(email), { at: Date.now(), value });
       return value;
     },
@@ -247,15 +248,23 @@ export function apply(ctx) {
   ctx.inject(['commands'], (commandCtx) => {
     commandCtx.commands.register({
       name: 'agy',
-      description: 'Google Antigravity accounts (/agy login | status | use <email> | logout)',
-      input: { hint: '[login|status|use <email>|logout]' },
-      async handler({ rawInput, signal }) {
+      description: 'Google Antigravity accounts: login, status, use <email>, logout',
+      input: { hint: 'login | status | use <email> | logout [email]' },
+      async handler({ rawInput }) {
         const [action = 'status', email] = rawInput.trim().split(/\s+/).filter(Boolean);
         try {
+          if (action === 'login' && email) {
+            const { email: added } = await agy.finishLogin(email);
+            return { kind: 'success', text: `Connected as ${added}. Pick an "Antigravity" model in the model picker.` };
+          }
           if (action === 'login') {
-            const { email: added } = await agy.login({ signal });
-            modelsChanged();
-            return { kind: 'success', text: `Connected (${added}). Pick an "Antigravity" model.` };
+            const url = await startLogin();
+            openBrowser(url); // navigateur de la machine qui fait tourner DSH ; le lien sert ailleurs
+            return { kind: 'success', text: [
+              'Sign in with Google here (a browser tab may already be open):', url, '',
+              `Using DSH from another device? After approving, your browser lands on a page at localhost:${CALLBACK_PORT} that may not load.`,
+              'Copy that page\'s full address and run: /agy login <address>',
+            ].join('\n') };
           }
           if (action === 'use' && email) {
             await agy.use(email);

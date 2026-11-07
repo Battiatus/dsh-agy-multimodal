@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.HOME = await mkdtemp(join(tmpdir(), 'agy-mm-home-')); // aucun compte : on teste le câblage, pas le réseau
+process.env.PATH = ''; // /agy login n'ouvre pas de vrai navigateur pendant les tests (open/xdg-open introuvables)
 const plugin = await import('../index.js');
 
 function fakeHost() {
@@ -42,6 +43,23 @@ test('le plugin enregistre son adaptateur, ses deux outils, /agy et sa route', a
   assert.deepEqual(Object.keys(host.tools).sort(), ['agy_media', 'agy_web_search']);
   assert.equal((await host.commands.agy.handler({ rawInput: '' })).text, 'No account: run /agy login');
   assert.ok(host.routes['/api/agy-multimodal']);
+});
+
+test('/agy login rend le lien Google sans attendre, et /agy login <adresse> termine la connexion', async () => {
+  const host = fakeHost();
+  const started = await host.commands.agy.handler({ rawInput: ' login' });
+  assert.equal(started.kind, 'success');
+  assert.match(started.text, /https:\/\/accounts\.google\.com\/\S+/);
+  assert.match(started.text, /\/agy login <address>/);
+  const status = await host.rpc('status', {});
+  assert.equal(status.result.value.login.pending, true);
+  assert.match(status.result.value.login.url, /accounts\.google\.com/);
+  const wrong = await host.commands.agy.handler({ rawInput: 'login http://localhost:51121/oauth-callback?code=c&state=x' });
+  assert.equal(wrong.kind, 'error');
+  assert.match(wrong.text, /another sign-in attempt/);
+  await host.rpc('login.cancel', {});
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal((await host.rpc('status', {})).result.value.login.pending, false);
 });
 
 test('sans compte, un appel se termine par un échec MISSING_CREDENTIAL, pas une exception', async () => {

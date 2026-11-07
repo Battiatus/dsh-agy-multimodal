@@ -67,14 +67,17 @@ dsh plugin --profile desktop remove gemini-dsh
 ## Usage
 
 1. Open **Settings › Antigravity** and click **Sign in with Google** (or type `/agy login`).
-2. Approve the sign-in in your browser.
+2. Choose your Google account and approve access in the page that opens. If no page opens, click **Open Google sign-in**.
 3. Pick an **Antigravity** model in the model picker and start chatting.
+
+**Using DSH from another device** (DSH web on a server, a phone, another PC): after you approve, Google sends your browser to a `localhost:51121` page that does not load. Copy that page's full address from the address bar and paste it in the field under **Open Google sign-in**, or run `/agy login <address>`.
 
 ### `/agy` command
 
 | Command | What it does |
 | --- | --- |
-| `/agy login` | Add a Google account |
+| `/agy login` | Add a Google account: shows the sign-in link |
+| `/agy login <address>` | Finish a sign-in from another device with the address Google sent you to |
 | `/agy status` | List accounts, the active one is marked ● |
 | `/agy use <email>` | Switch the active account |
 | `/agy logout [email]` | Remove an account (the active one by default) |
@@ -94,8 +97,8 @@ No. It uses the same sign-in as Google Antigravity. Google has already suspended
 **Where are my tokens stored?**
 On your machine only, in `~/.dsh/agy-multimodal/accounts.json` (permissions `0600`). They are never shown in the UI. Access settings live in `settings.json` next to it.
 
-**Sign-in fails with a port error.**
-Sign-in listens briefly on `127.0.0.1:51121`, the port Google requires for this client. If another Antigravity tool is using it at the same time, `/agy login` tells you so. Close that tool and try again.
+**Nothing happens after I approve in Google.**
+Sign-in listens on `127.0.0.1:51121`, the port Google requires for this client, on the machine running DSH. If your browser is on another device, or another Antigravity tool holds that port, copy the address of the page Google sent you to and paste it in **Settings › Antigravity** (or run `/agy login <address>`).
 
 **I get a 400 error about tool schemas.**
 Update the plugin. Recent versions convert multi-type and tuple schemas into a form Gemini accepts.
