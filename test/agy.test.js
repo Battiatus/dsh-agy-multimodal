@@ -95,3 +95,26 @@ test('connexion : lien Google tout de suite, adresse collée vérifiée, annulat
   await assert.rejects(done, /sign-in cancelled/);
   await assert.rejects(agy.finishLogin('code=c'), /no sign-in in progress/);
 });
+
+test('un fichier de comptes illisible n\'est jamais écrasé par une liste vide', async () => {
+  const { mkdtemp, readFile, writeFile } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const { Agy } = await import('../lib/agy.js');
+  const path = join(await mkdtemp(join(tmpdir(), 'agy-bad-')), 'accounts.json');
+  await writeFile(path, '{"active":"a@x","accounts":{"a@x":{tronqu');
+  const agy = new Agy(path);
+  await assert.rejects(agy.accounts(), /damaged/);
+  await assert.rejects(agy.remove('a@x'), /damaged/);
+  assert.equal(await readFile(path, 'utf8'), '{"active":"a@x","accounts":{"a@x":{tronqu');
+  assert.deepEqual(await new Agy(join(tmpdir(), 'absent-agy', 'accounts.json')).accounts(), []);
+});
+
+test('les erreurs réseau nomment la cause, et les certificats du système sont acceptés', async () => {
+  const { networkCause, trustSystemCertificates } = await import('../lib/agy.js');
+  const cause = (code, message) => Object.assign(new TypeError('fetch failed'), { cause: Object.assign(new Error(message), { code }) });
+  assert.match(networkCause(cause('ENOTFOUND', 'getaddrinfo ENOTFOUND cloudcode-pa.googleapis.com')), /DNS/);
+  assert.match(networkCause(cause('UNABLE_TO_GET_ISSUER_CERT_LOCALLY', 'unable to get local issuer certificate')), /NODE_EXTRA_CA_CERTS/);
+  assert.match(networkCause(cause('ECONNRESET', 'socket hang up')), /HTTPS_PROXY/);
+  assert.equal(trustSystemCertificates(), true); // Node 24 de DSH, comme celui des tests
+});

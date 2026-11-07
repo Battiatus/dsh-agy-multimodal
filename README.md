@@ -48,8 +48,9 @@ Installing from the app's plugin screen instead? Paste the full address:
 git+https://github.com/Battiatus/dsh-gemini-antigravity-auth.git
 ```
 
-> **`dsh: command not found`?** The CLI ships inside the app:
-> `"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"`.
+> **`dsh: command not found`?** The CLI ships inside the app, in its `runtime/cli/bin` folder:
+> - macOS: `"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"`
+> - Windows and Linux: `resources/runtime/cli/bin/` inside the DeepSeek Harness install folder.
 > Use a different `--profile` (for example `web` or `tui`) to install it in another DSH profile.
 
 **Update**
@@ -99,6 +100,9 @@ On your machine only, in `~/.dsh/agy-multimodal/accounts.json` (permissions `060
 
 **Nothing happens after I approve in Google.**
 Sign-in listens on `127.0.0.1:51121`, the port Google requires for this client, on the machine running DSH. If your browser is on another device, or another Antigravity tool holds that port, copy the address of the page Google sent you to and paste it in **Settings › Antigravity** (or run `/agy login <address>`).
+
+**Settings show "fetch failed", a certificate error or no model (often on Windows or at work).**
+The plugin trusts your system's certificates (Windows store, macOS keychain, Linux CA bundle), so an antivirus or company proxy that inspects HTTPS is accepted like in your browser. The error now names the real cause: for DNS or a blocked connection, check your VPN or firewall; behind a proxy, set `HTTPS_PROXY` (for example `http://proxy.company:8080`) before starting DeepSeek Harness.
 
 **I get a 400 error about tool schemas.**
 Update the plugin. Recent versions convert multi-type and tuple schemas into a form Gemini accepts.

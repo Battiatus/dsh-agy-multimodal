@@ -42,8 +42,9 @@ Vous installez depuis l'écran des plugins de l'application ? Collez l'adresse c
 git+https://github.com/Battiatus/dsh-gemini-antigravity-auth.git
 ```
 
-> **`dsh: command not found` ?** La commande est fournie avec l'application :
-> `"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"`.
+> **`dsh: command not found` ?** La commande est fournie avec l'application, dans son dossier `runtime/cli/bin` :
+> - macOS : `"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh"`
+> - Windows et Linux : `resources/runtime/cli/bin/` dans le dossier d'installation de DeepSeek Harness.
 > Changez `--profile` (par exemple `web` ou `tui`) pour l'installer dans un autre profil DSH.
 
 **Mettre à jour**
@@ -93,6 +94,9 @@ Uniquement sur votre machine, dans `~/.dsh/agy-multimodal/accounts.json` (droits
 
 **Rien ne se passe après la validation chez Google.**
 La connexion écoute sur `127.0.0.1:51121`, le port imposé par Google pour ce client, sur la machine qui fait tourner DSH. Si votre navigateur est sur un autre appareil, ou si un autre outil Antigravity occupe ce port, copiez l'adresse de la page où Google vous a renvoyé et collez-la dans **Réglages › Antigravity** (ou lancez `/agy login <adresse>`).
+
+**Les réglages affichent « fetch failed », une erreur de certificat ou aucun modèle (souvent sous Windows ou au bureau).**
+Le plugin fait confiance aux certificats de votre système (magasin Windows, trousseau macOS, certificats Linux) : un antivirus ou un proxy d'entreprise qui inspecte HTTPS est accepté comme dans votre navigateur. L'erreur nomme désormais la vraie cause : pour le DNS ou une connexion bloquée, vérifiez VPN et pare-feu ; derrière un proxy, définissez `HTTPS_PROXY` (par exemple `http://proxy.entreprise:8080`) avant de lancer DeepSeek Harness.
 
 **J'ai une erreur 400 sur les schémas d'outils.**
 Mettez le plugin à jour : les versions récentes convertissent les schémas multi-types et en tuple dans une forme que Gemini accepte.

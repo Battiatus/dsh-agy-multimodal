@@ -4,7 +4,8 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-process.env.HOME = await mkdtemp(join(tmpdir(), 'agy-mm-home-')); // aucun compte : on teste le câblage, pas le réseau
+// aucun compte : on teste le câblage, pas le réseau. Windows lit USERPROFILE, macOS et Linux lisent HOME
+process.env.HOME = process.env.USERPROFILE = await mkdtemp(join(tmpdir(), 'agy-mm-home-'));
 process.env.PATH = ''; // /agy login n'ouvre pas de vrai navigateur pendant les tests (open/xdg-open introuvables)
 const plugin = await import('../index.js');
 

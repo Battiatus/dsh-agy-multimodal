@@ -68,8 +68,9 @@ export function apply(ctx) {
     if (Date.now() - catalog.at < MODELS_TTL_MS) return catalog.value;
     try {
       catalog = { at: Date.now(), value: await agy.models() };
-    } catch {
-      catalog.at = Date.now() - MODELS_TTL_MS + 30_000; // réessai dans 30 s
+    } catch (error) {
+      // réessai dans 30 s ; l'erreur est montrée dans les réglages (sans compte, ce n'en est pas une)
+      catalog = { ...catalog, at: Date.now() - MODELS_TTL_MS + 30_000, error: /no Antigravity account/.test(error.message) ? null : error.message };
     }
     return catalog.value;
   };
@@ -207,6 +208,7 @@ export function apply(ctx) {
       login: { pending: Boolean(login.url), url: login.url, error: login.error },
       settings,
       models: (await models()).map(({ id, name }) => ({ id, name })),
+      modelsError: catalog.error ?? null,
     }),
     login: async () => ({ url: await startLogin() }),
     'login.finish': async ({ address }) => ({ email: (await agy.finishLogin(String(address ?? ''))).email }),

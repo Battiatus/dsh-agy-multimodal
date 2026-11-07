@@ -186,7 +186,7 @@ window.__ModuleLoader__.load({
       }, [pending]);
 
       if (!status) return h('p', { className: error ? 'agymm-error' : 'agymm-muted' }, error ?? 'Loading…');
-      const { accounts, login, settings, models } = status;
+      const { accounts, login, settings, models, modelsError } = status;
       const set = (patch) => act('settings', patch);
       const signIn = () => {
         // navigateur web : onglet ouvert pendant le clic (sinon bloqué). App de bureau : elle refuse about:blank
@@ -228,6 +228,9 @@ window.__ModuleLoader__.load({
                 ? btn({ kind: 'primary', onClick: signIn, style: { alignSelf: 'flex-start' } }, 'Sign in with Google')
                 : btn({ kind: 'add', onClick: signIn }, '+ Add another Google account'),
               login.error && h('p', { className: 'agymm-error' }, login.error))),
+
+        modelsError && accounts.length > 0 && h('section', null,
+          h('p', { className: 'agymm-error' }, `Google's model list is unavailable, so no Antigravity model shows in the picker: ${modelsError}`)),
 
         h('section', null,
           h('h3', null, 'Features'),
